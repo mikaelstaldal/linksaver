@@ -1,0 +1,124 @@
+package db
+
+import (
+	"database/sql"
+	"errors"
+	"modernc.org/sqlite"
+	sqlite3 "modernc.org/sqlite/lib"
+	"time"
+)
+
+var ErrDuplicate = errors.New("duplicate")
+var ErrNotFound = errors.New("not found")
+
+// Link represents a saved web link
+type Link struct {
+	ID      int64
+	URL     string
+	Title   string
+	AddedAt time.Time
+}
+
+// DB is a wrapper around sql.DB
+type DB struct {
+	*sql.DB
+}
+
+// InitDB initializes the database
+func InitDB(dataSourceName string) (*DB, error) {
+	db, err := sql.Open("sqlite", dataSourceName)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = db.Ping(); err != nil {
+		return nil, err
+	}
+
+	_, err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS links (
+			id INTEGER PRIMARY KEY,
+			url TEXT NOT NULL UNIQUE,
+			title TEXT NOT NULL,
+			added_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)
+	`)
+	if err != nil {
+		return nil, err
+	}
+
+	return &DB{db}, nil
+}
+
+// GetAllLinks returns all links from the database
+func (db *DB) GetAllLinks() ([]Link, error) {
+	rows, err := db.Query("SELECT id, url, title, added_at FROM links ORDER BY added_at DESC")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var links []Link
+	for rows.Next() {
+		var link Link
+		if err := rows.Scan(&link.ID, &link.URL, &link.Title, &link.AddedAt); err != nil {
+			return nil, err
+		}
+		links = append(links, link)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return links, nil
+}
+
+// AddLink adds a new link to the database
+func (db *DB) AddLink(url, title string) (int64, error) {
+	result, err := db.Exec("INSERT INTO links (url, title) VALUES (?, ?)", url, title)
+	if err != nil {
+		var sqliteErr *sqlite.Error
+		if errors.As(err, &sqliteErr) && sqliteErr.Code() == sqlite3.SQLITE_CONSTRAINT_UNIQUE {
+			return 0, ErrDuplicate
+		}
+		return 0, err
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	return id, nil
+}
+
+// GetLink returns a single link from the database
+// returns ErrNotFound if no row with the given id is found
+func (db *DB) GetLink(id int64) (Link, error) {
+	var link Link
+	err := db.QueryRow("SELECT id, url, title, added_at FROM links WHERE id = ?", id).Scan(&link.ID, &link.URL, &link.Title, &link.AddedAt)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return Link{}, ErrNotFound
+	case err != nil:
+		return Link{}, err
+	default:
+		return link, nil
+	}
+}
+
+// DeleteLink deletes a link from the database
+func (db *DB) DeleteLink(id int64) error {
+	result, err := db.Exec("DELETE FROM links WHERE id = ?", id)
+	if err != nil {
+		return err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return ErrNotFound
+	}
+	return nil
+}

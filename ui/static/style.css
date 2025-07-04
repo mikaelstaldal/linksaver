@@ -1,0 +1,54 @@
+div.htmx-swapping {
+    opacity: 0;
+    transition: opacity 1s ease-out;
+}
+
+/* Responsive multi-column layout for links */
+.links-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: 1fr;
+}
+
+/* Two columns for medium screens (768px and up) */
+@media (min-width: 768px) {
+    .links-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Three columns for large screens (1200px and up) */
+@media (min-width: 1200px) {
+    .links-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* Four columns for extra large screens (1400px and up) */
+@media (min-width: 1400px) {
+    .links-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+@media (min-width:1600px) {
+  .container,
+  .container-lg,
+  .container-md,
+  .container-sm,
+  .container-xl,
+  .container-xxl {
+    max-width:1520px
+  }
+}
+
+@media (min-width:1800px) {
+  .container,
+  .container-lg,
+  .container-md,
+  .container-sm,
+  .container-xl,
+  .container-xxl {
+    max-width:1720px
+  }
+}

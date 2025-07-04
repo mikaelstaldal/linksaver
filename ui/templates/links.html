@@ -1,0 +1,13 @@
+{{define "links"}}
+{{if .Links}}
+    <div id="links" class="links-grid">
+        {{range .Links}}
+        {{template "link" .}}
+        {{end}}
+    </div>
+{{else}}
+    <div id="links" class="text-center text-muted py-4">
+        <p>No links saved yet. Add your first link!</p>
+    </div>
+{{end}}
+{{end}}
