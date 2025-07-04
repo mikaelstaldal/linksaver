@@ -24,7 +24,8 @@ func TestDB(t *testing.T) {
 	// Test adding a link
 	url := "https://example.com"
 	title := "Example Website"
-	id, err := database.AddLink(url, title)
+	description := "This is an example website"
+	id, err := database.AddLink(url, title, description)
 	if err != nil {
 		t.Fatalf("Failed to add link: %v", err)
 	}
@@ -33,7 +34,7 @@ func TestDB(t *testing.T) {
 	}
 
 	// Test adding duplicate link
-	_, err = database.AddLink(url, "bogus")
+	_, err = database.AddLink(url, "bogus", "")
 	if err != ErrDuplicate {
 		t.Fatalf("Expected error adding duplicate link")
 	}
@@ -52,6 +53,9 @@ func TestDB(t *testing.T) {
 	if links[0].Title != title {
 		t.Errorf("Expected title %s, got %s", title, links[0].Title)
 	}
+	if links[0].Title != title {
+		t.Errorf("Expected description %s, got %s", description, links[0].Description)
+	}
 	if links[0].AddedAt.IsZero() {
 		t.Errorf("Expected non-zero AddedAt")
 	}
@@ -66,6 +70,9 @@ func TestDB(t *testing.T) {
 	}
 	if link.Title != title {
 		t.Errorf("Expected single title %s, got %s", title, link.Title)
+	}
+	if link.Description != description {
+		t.Errorf("Expected single description %s, got %s", description, link.Description)
 	}
 	if link.AddedAt.IsZero() {
 		t.Errorf("Expected single non-zero AddedAt")

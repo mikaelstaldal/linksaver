@@ -13,10 +13,11 @@ var ErrNotFound = errors.New("not found")
 
 // Link represents a saved web link
 type Link struct {
-	ID      int64
-	URL     string
-	Title   string
-	AddedAt time.Time
+	ID          int64
+	URL         string
+	Title       string
+	Description string
+	AddedAt     time.Time
 }
 
 // DB is a wrapper around sql.DB
@@ -40,6 +41,7 @@ func InitDB(dataSourceName string) (*DB, error) {
 			id INTEGER PRIMARY KEY,
 			url TEXT NOT NULL UNIQUE,
 			title TEXT NOT NULL,
+			description TEXT NOT NULL,
 			added_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)
 	`)
@@ -52,7 +54,7 @@ func InitDB(dataSourceName string) (*DB, error) {
 
 // GetAllLinks returns all links from the database
 func (db *DB) GetAllLinks() ([]Link, error) {
-	rows, err := db.Query("SELECT id, url, title, added_at FROM links ORDER BY added_at DESC")
+	rows, err := db.Query("SELECT id, url, title, description, added_at FROM links ORDER BY added_at DESC")
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +63,7 @@ func (db *DB) GetAllLinks() ([]Link, error) {
 	var links []Link
 	for rows.Next() {
 		var link Link
-		if err := rows.Scan(&link.ID, &link.URL, &link.Title, &link.AddedAt); err != nil {
+		if err := rows.Scan(&link.ID, &link.URL, &link.Title, &link.Description, &link.AddedAt); err != nil {
 			return nil, err
 		}
 		links = append(links, link)
@@ -74,8 +76,8 @@ func (db *DB) GetAllLinks() ([]Link, error) {
 }
 
 // AddLink adds a new link to the database
-func (db *DB) AddLink(url, title string) (int64, error) {
-	result, err := db.Exec("INSERT INTO links (url, title) VALUES (?, ?)", url, title)
+func (db *DB) AddLink(url, title, description string) (int64, error) {
+	result, err := db.Exec("INSERT INTO links (url, title, description) VALUES (?, ?, ?)", url, title, description)
 	if err != nil {
 		var sqliteErr *sqlite.Error
 		if errors.As(err, &sqliteErr) && sqliteErr.Code() == sqlite3.SQLITE_CONSTRAINT_UNIQUE {
@@ -96,7 +98,8 @@ func (db *DB) AddLink(url, title string) (int64, error) {
 // returns ErrNotFound if no row with the given id is found
 func (db *DB) GetLink(id int64) (Link, error) {
 	var link Link
-	err := db.QueryRow("SELECT id, url, title, added_at FROM links WHERE id = ?", id).Scan(&link.ID, &link.URL, &link.Title, &link.AddedAt)
+	err := db.QueryRow("SELECT id, url, title, description, added_at FROM links WHERE id = ?", id).
+		Scan(&link.ID, &link.URL, &link.Title, &link.Description, &link.AddedAt)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
 		return Link{}, ErrNotFound

@@ -16,6 +16,7 @@ func TestHandlers(t *testing.T) {
 
 	testUrl := "https://www.some-test-url.com"
 	testTitle := "Test Title"
+	testDescription := "Test Description"
 
 	// Initialize the database
 	database, err := db.InitDB(dbFile)
@@ -23,7 +24,7 @@ func TestHandlers(t *testing.T) {
 		t.Fatalf("Failed to initialize database: %v", err)
 	}
 
-	_, err = database.AddLink(testUrl, testTitle)
+	_, err = database.AddLink(testUrl, testTitle, testDescription)
 	if err != nil {
 		t.Fatalf("Failed to add link: %v", err)
 	}
@@ -45,15 +46,16 @@ func TestHandlers(t *testing.T) {
 		}
 
 		if !strings.Contains(rr.Body.String(), testUrl) {
-			t.Errorf("Handler response doesn't contain the expected link URL\n%s", rr.Body.String())
+			t.Errorf("Response doesn't contain the expected link URL\n%s", rr.Body.String())
 		}
-
 		if !strings.Contains(rr.Body.String(), testTitle) {
-			t.Errorf("Handler response doesn't contain the expected link title\n%s", rr.Body.String())
+			t.Errorf("Response doesn't contain the expected link title\n%s", rr.Body.String())
 		}
-
+		if !strings.Contains(rr.Body.String(), testDescription) {
+			t.Errorf("Response doesn't contain the expected link description\n%s", rr.Body.String())
+		}
 		if !strings.Contains(rr.Body.String(), time.Now().Format("2006-01-02 ")) {
-			t.Errorf("Handler response doesn't contain the expected date\n%s", rr.Body.String())
+			t.Errorf("Response doesn't contain the expected date\n%s", rr.Body.String())
 		}
 	})
 
@@ -67,11 +69,13 @@ func TestHandlers(t *testing.T) {
 		}
 
 		if !strings.Contains(rr.Body.String(), testUrl) {
-			t.Errorf("Handler response doesn't contain the expected link URL\n%s", rr.Body.String())
+			t.Errorf("Response doesn't contain the expected link URL\n%s", rr.Body.String())
 		}
-
 		if !strings.Contains(rr.Body.String(), testTitle) {
-			t.Errorf("Response doesn't contain expected title")
+			t.Errorf("Response doesn't contain expected title\n%s", rr.Body.String())
+		}
+		if !strings.Contains(rr.Body.String(), testDescription) {
+			t.Errorf("Response doesn't contain the expected link description\n%s", rr.Body.String())
 		}
 	})
 

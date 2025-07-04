@@ -59,10 +59,11 @@ func init() {
 }
 
 type Link struct {
-	ID      int64
-	URL     string
-	Title   string
-	AddedAt string
+	ID          int64
+	URL         string
+	Title       string
+	Description string
+	AddedAt     string
 }
 
 // ListLinks handles the request to list all links
@@ -97,13 +98,13 @@ func (h *Handler) AddLink(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Extract title from the URL
-	title, screenshot, err := extractTitleAndScreenshotFromURL(parsedURL.String())
+	title, description, screenshot, err := extractTitleAndDescriptionAndScreenshotFromURL(parsedURL.String())
 	if err != nil {
-		sendError(w, fmt.Sprintf("Failed to extract title from URL: %v", err), http.StatusBadRequest)
+		sendError(w, fmt.Sprintf("Failed to load URL: %v", err), http.StatusBadRequest)
 		return
 	}
 
-	id, err := h.DB.AddLink(parsedURL.String(), title)
+	id, err := h.DB.AddLink(parsedURL.String(), title, description)
 	if err != nil {
 		if errors.Is(err, db.ErrDuplicate) {
 			sendError(w, "URL already exists", http.StatusConflict)
@@ -121,23 +122,34 @@ func (h *Handler) AddLink(w http.ResponseWriter, r *http.Request) {
 	h.listLinks(w, r, http.StatusCreated)
 }
 
-func extractTitleAndScreenshotFromURL(url string) (string, []byte, error) {
-	var title string
+func extractTitleAndDescriptionAndScreenshotFromURL(url string) (string, string, []byte, error) {
 	response, err := chromedp.RunResponse(browserContext,
 		chromedp.Navigate(url),
 	)
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to fetch URL: %w", err)
+		return "", "", nil, fmt.Errorf("failed to fetch URL: %w", err)
 	}
 	if response.Status >= 400 {
-		return "", nil, fmt.Errorf("failed to fetch URL: %v %v", response.Status, response.StatusText)
+		return "", "", nil, fmt.Errorf("failed to fetch URL: %v %v", response.Status, response.StatusText)
 	}
+
+	var title string
 	err = chromedp.Run(browserContext,
 		chromedp.Title(&title),
 	)
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to extract title: %w", err)
+		return "", "", nil, fmt.Errorf("failed to extract title: %w", err)
 	}
+	title = strings.TrimSpace(title)
+
+	var description string
+	err = chromedp.Run(browserContext,
+		chromedp.Evaluate(`document.querySelector("head meta[name='description']").content`, &description),
+	)
+	if err != nil {
+		description = ""
+	}
+	description = strings.TrimSpace(description)
 
 	var screenshot []byte
 	err = chromedp.Run(browserContext,
@@ -156,19 +168,22 @@ func extractTitleAndScreenshotFromURL(url string) (string, []byte, error) {
 		}),
 	)
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to take screenshot: %w", err)
+		return "", "", nil, fmt.Errorf("failed to take screenshot: %w", err)
 	}
 
-	title = strings.TrimSpace(title)
 	if title == "" {
-		return "", nil, fmt.Errorf("no title found in HTML")
+		return "", "", nil, fmt.Errorf("no title found in HTML")
 	}
 
 	if len(title) > 250 {
 		title = title[:250] + "..."
 	}
 
-	return title, screenshot, nil
+	if len(description) > 1020 {
+		description = description[:1020] + "..."
+	}
+
+	return title, description, screenshot, nil
 }
 
 func saveScreenshot(id int64, screenshot []byte) error {
@@ -270,10 +285,11 @@ func (h *Handler) listLinks(w http.ResponseWriter, r *http.Request, status int) 
 
 func formatLink(dbLink db.Link) Link {
 	return Link{
-		ID:      dbLink.ID,
-		URL:     dbLink.URL,
-		Title:   dbLink.Title,
-		AddedAt: dbLink.AddedAt.Format("2006-01-02 15:04:05 MST"),
+		ID:          dbLink.ID,
+		URL:         dbLink.URL,
+		Title:       dbLink.Title,
+		Description: dbLink.Description,
+		AddedAt:     dbLink.AddedAt.Format("2006-01-02 15:04:05 MST"),
 	}
 }
 
