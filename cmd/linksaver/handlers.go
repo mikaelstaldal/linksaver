@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/chromedp/cdproto/page"
@@ -64,6 +66,7 @@ type Link struct {
 	Title       string
 	Description string
 	AddedAt     string
+	Screenshot  string
 }
 
 // ListLinks handles the request to list all links
@@ -96,15 +99,16 @@ func (h *Handler) AddLink(w http.ResponseWriter, r *http.Request) {
 		sendError(w, "Invalid URL format. Must be a valid HTTP/HTTPS URL", http.StatusBadRequest)
 		return
 	}
+	urlToSave := parsedURL.String()
 
 	// Extract title from the URL
-	title, description, screenshot, err := extractTitleAndDescriptionAndScreenshotFromURL(parsedURL.String())
+	title, description, screenshot, err := extractTitleAndDescriptionAndScreenshotFromURL(urlToSave)
 	if err != nil {
 		sendError(w, fmt.Sprintf("Failed to load URL: %v", err), http.StatusBadRequest)
 		return
 	}
 
-	id, err := h.DB.AddLink(parsedURL.String(), title, description)
+	id, err := h.DB.AddLink(urlToSave, title, description)
 	if err != nil {
 		if errors.Is(err, db.ErrDuplicate) {
 			sendError(w, "URL already exists", http.StatusConflict)
@@ -114,7 +118,7 @@ func (h *Handler) AddLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = saveScreenshot(id, screenshot); err != nil {
+	if err = saveScreenshot(urlToSave, screenshot); err != nil {
 		sendError(w, fmt.Sprintf("Failed to save screenshot: %v", err), http.StatusInternalServerError)
 	}
 
@@ -186,8 +190,8 @@ func extractTitleAndDescriptionAndScreenshotFromURL(url string) (string, string,
 	return title, description, screenshot, nil
 }
 
-func saveScreenshot(id int64, screenshot []byte) error {
-	filename := fmt.Sprintf("%d.jpg", id)
+func saveScreenshot(urlString string, screenshot []byte) error {
+	filename := screenshotFilename(urlString)
 	path := filepath.Join(screenshotDir, filename)
 
 	if err := os.WriteFile(path, screenshot, 0644); err != nil {
@@ -290,7 +294,13 @@ func formatLink(dbLink db.Link) Link {
 		Title:       dbLink.Title,
 		Description: dbLink.Description,
 		AddedAt:     dbLink.AddedAt.Format("2006-01-02 15:04:05 MST"),
+		Screenshot:  screenshotFilename(dbLink.URL),
 	}
+}
+
+func screenshotFilename(urlString string) string {
+	hash := sha256.Sum256([]byte(urlString))
+	return hex.EncodeToString(hash[:]) + ".jpg"
 }
 
 func sendError(w http.ResponseWriter, errorMessage string, status int) {
