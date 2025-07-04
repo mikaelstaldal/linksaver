@@ -1,12 +1,12 @@
 # Link Saver
 
 A simple and efficient web application for saving and managing your favorite links. 
-Link Saver automatically extracts page titles and screenshots from URLs and provides a web interface for 
-organizing your bookmarks.
+Link Saver automatically extracts page title description and screenshots from URLs and 
+provides a web interface for organizing your bookmarks.
 
 ## Features
 
-- **Save Links**: Add URLs with automatic title extraction and screenshots from web pages
+- **Save Links**: Add URLs with automatic title and description extraction and screenshots from web pages
 - **SQLite Storage**: Lightweight, file-based database with no external dependencies
 - **Docker Support**: Easy deployment with Docker containers
 
@@ -86,7 +86,7 @@ The application provides the following HTTP endpoints:
 - **Bootstrap**: CSS framework for responsive design
 - **HTMX**: Dynamic HTML updates without JavaScript
 - **Hyperscript**: Friendly client scripting
-- **chromedp**: Run headless Chrome browser to fetch page, extract title and take screenshot
+- **chromedp**: Run headless Chrome browser to fetch page, extract title, description and take screenshot
 
 ## License
 
