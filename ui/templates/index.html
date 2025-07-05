@@ -4,22 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Link Saver</title>
-    <link href="static/bootstrap.min.css" rel="stylesheet" integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr">
+    <link href="static/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr">
     <link href="static/style.css" rel="stylesheet">
-    <script src="static/htmx.min.js" integrity="sha384-Akqfrbj/HpNVo8k11SXBb6TlBWmXXlYQrCSqEWmyKJe+hDm3Z/B2WVG4smwBkRVm"></script>
-    <script src="static/hyperscript.min.js" integrity="sha384-NzchC8z9HmP/Ed8cheGl9XuSrFSkDNHPiDl+ujbHE0F0I7tWC4rUnwPXP+7IvVZv"></script>
+    <script src="static/htmx.min.js"
+            integrity="sha384-Akqfrbj/HpNVo8k11SXBb6TlBWmXXlYQrCSqEWmyKJe+hDm3Z/B2WVG4smwBkRVm"></script>
+    <script src="static/hyperscript.min.js"
+            integrity="sha384-NzchC8z9HmP/Ed8cheGl9XuSrFSkDNHPiDl+ujbHE0F0I7tWC4rUnwPXP+7IvVZv"></script>
 </head>
-<body class="bg-light">
-    <div class="container py-4">
-        <header class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
-            <h1 class="text-dark">Link Saver</h1>
-        </header>
+<body>
+<div class="container mt-4 mb-4">
+    <h2 class="text-secondary">Link Saver</h2>
 
-        <div class="alert alert-danger" role="alert" id="error" style="display: none"></div>
+    <div class="alert alert-danger" role="alert" id="error" style="display: none"></div>
 
-        <main class="bg-white rounded p-4 shadow-sm">
-            <section class="mb-4">
-                <form hx-post="/" hx-target="#links" hx-disabled-elt="find button" _="
+    <div class="mb-4">
+        <form hx-post="/" hx-target="#links" hx-disabled-elt="find button" _="
                           on htmx:afterRequest
                           if event.detail.failed then
                             put event.detail.xhr.responseText into #error
@@ -29,40 +29,40 @@
                             hide #error
                           end
                         ">
-                    <div class="row g-2 align-items-end">
-                        <div class="col-auto">
-                            <label for="url" class="form-label">URL:</label>
-                        </div>
-                        <div class="col">
-                            <input type="url" id="url" name="url" class="form-control" required placeholder="https://example.com">
-                        </div>
-                        <div class="col-auto">
-                            <button type="submit" class="btn btn-primary">Save Link</button>
-                        </div>
-                    </div>
-                </form>
-            </section>
-
-            <section class="mb-4">
-                <form hx-get="/" hx-target="#links">
-                    <div class="row g-2 align-items-end">
-                        <div class="col-auto">
-                            <label for="s" class="form-label">Search:</label>
-                        </div>
-                        <div class="col">
-                            <input type="text" id="s" name="s" class="form-control" required>
-                        </div>
-                        <div class="col-auto">
-                            <button type="submit" class="btn btn-secondary">Search</button>
-                        </div>
-                    </div>
-                </form>
-            </section>
-
-            <section id="links">
-                {{template "links" .}}
-            </section>
-        </main>
+            <div class="row g-2 align-items-end">
+                <div class="col-auto">
+                    <label for="url" class="form-label">URL:</label>
+                </div>
+                <div class="col">
+                    <input type="url" id="url" name="url" class="form-control" required
+                           placeholder="https://example.com">
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary">Save Link</button>
+                </div>
+            </div>
+        </form>
     </div>
+
+    <div class="mb-4">
+        <form hx-get="/" hx-target="#links">
+            <div class="row g-2 align-items-end">
+                <div class="col-auto">
+                    <label for="s" class="form-label">Search:</label>
+                </div>
+                <div class="col">
+                    <input type="text" id="s" name="s" class="form-control" required>
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-secondary">Search</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div id="links">
+        {{template "links" .}}
+    </div>
+</div>
 </body>
 </html>

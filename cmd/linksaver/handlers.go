@@ -301,11 +301,17 @@ func (h *Handler) listLinks(w http.ResponseWriter, r *http.Request, status int) 
 }
 
 func formatLink(dbLink db.Link) Link {
+	var description string
+	if dbLink.Description != "" {
+		description = dbLink.Description
+	} else {
+		description = dbLink.Title
+	}
 	return Link{
 		ID:          dbLink.ID,
 		URL:         dbLink.URL,
 		Title:       dbLink.Title,
-		Description: dbLink.Description,
+		Description: description,
 		AddedAt:     dbLink.AddedAt.Format("2006-01-02 15:04:05 MST"),
 		Screenshot:  screenshotFilename(dbLink.URL),
 	}

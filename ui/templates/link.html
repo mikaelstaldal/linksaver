@@ -1,10 +1,10 @@
 {{define "link"}}
-<div class="list-group-item">
-    <div class="d-flex justify-content-between align-items-start">
+<div class="links-grid-item list-group-item border rounded shadow-sm p-1">
+    <div class="links-grid-header d-flex justify-content-between align-items-start">
         <div class="flex-grow-1">
             <h5 class="mb-1"><a href="{{.URL}}" target="_blank" class="text-decoration-none" title="{{.Description}}">{{.Title}}</a></h5>
-            <p><a href="{{.URL}}" target="_blank" class="text-decoration-none mb-1 text-muted small" style="word-break: break-all;">{{.URL}}</a></p>
-            <small class="text-muted">Added: {{.AddedAt}}</small>
+            <div><a href="{{.URL}}" target="_blank" class="text-decoration-none text-muted small" style="word-break: break-all;">{{.URL}}</a></div>
+            <div class="text-muted small">Added: {{.AddedAt}}</div>
         </div>
         <div class="ms-3">
             <button class="btn btn-danger btn-sm"
@@ -24,7 +24,7 @@
             >Delete</button>
         </div>
     </div>
-    <div class="mt-2">
+    <div>
         <a href="{{.URL}}" target="_blank" class="text-decoration-none"><img src="screenshots/{{.Screenshot}}" class="img-fluid" alt=""/></a>
     </div>
 </div>

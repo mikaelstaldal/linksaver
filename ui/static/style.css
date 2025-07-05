@@ -8,6 +8,15 @@ div.htmx-swapping {
     display: grid;
     gap: 1rem;
     grid-template-columns: 1fr;
+    background-color: var(--bs-tertiary-bg);
+}
+
+.links-grid-item {
+    background-color: var(--bs-secondary-bg);
+}
+
+.links-grid-header {
+    padding: 0.5rem;
 }
 
 /* Two columns for medium screens (768px and up) */
