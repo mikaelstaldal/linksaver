@@ -162,8 +162,8 @@ func extractTitleAndDescriptionAndScreenshotFromURL(url string) (string, string,
 			var err error
 			screenshot, err = page.CaptureScreenshot().
 				WithFromSurface(true).
-				WithFormat(page.CaptureScreenshotFormatJpeg).
-				WithQuality(90).
+				WithFormat(page.CaptureScreenshotFormatPng).
+				WithQuality(100).
 				Do(ctx)
 			if err != nil {
 				return err
@@ -249,7 +249,7 @@ func (h *Handler) DeleteLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	screenshotPath := filepath.Join(screenshotDir, fmt.Sprintf("%d.jpg", id))
+	screenshotPath := filepath.Join(screenshotDir, fmt.Sprintf("%d.png", id))
 	if err := os.Remove(screenshotPath); err != nil && !os.IsNotExist(err) {
 		sendError(w, fmt.Sprintf("Failed delete screenshot: %v\n", err), http.StatusInternalServerError)
 	}
@@ -319,7 +319,7 @@ func formatLink(dbLink db.Link) Link {
 
 func screenshotFilename(urlString string) string {
 	hash := sha256.Sum256([]byte(urlString))
-	return hex.EncodeToString(hash[:]) + ".jpg"
+	return hex.EncodeToString(hash[:]) + ".png"
 }
 
 func sendError(w http.ResponseWriter, errorMessage string, status int) {

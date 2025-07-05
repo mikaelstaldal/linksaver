@@ -10,7 +10,7 @@
             <button class="btn btn-danger btn-sm"
                     hx-delete="/{{.ID}}"
                     hx-swap="delete swap:1s"
-                    hx-target="closest div.list-group-item"
+                    hx-target="closest div.links-grid-item"
                     _="
                      on htmx:afterRequest
                      if event.detail.failed then
@@ -25,7 +25,8 @@
         </div>
     </div>
     <div>
-        <a href="{{.URL}}" target="_blank" class="text-decoration-none"><img src="screenshots/{{.Screenshot}}" class="img-fluid" alt=""/></a>
+        <a href="{{.URL}}" target="_blank" class="text-decoration-none"><img
+                src="screenshots/{{.Screenshot}}" width="800" height="600" class="img-fluid" alt=""/></a>
     </div>
 </div>
 {{end}}
