@@ -59,6 +59,29 @@ func TestHandlers(t *testing.T) {
 		}
 	})
 
+	t.Run("search success", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/?s=test", nil)
+		rr := httptest.NewRecorder()
+		handler.ServeHTTP(rr, req)
+
+		if status := rr.Code; status != http.StatusOK {
+			t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
+		}
+
+		if !strings.Contains(rr.Body.String(), testUrl) {
+			t.Errorf("Response doesn't contain the expected link URL\n%s", rr.Body.String())
+		}
+		if !strings.Contains(rr.Body.String(), testTitle) {
+			t.Errorf("Response doesn't contain the expected link title\n%s", rr.Body.String())
+		}
+		if !strings.Contains(rr.Body.String(), testDescription) {
+			t.Errorf("Response doesn't contain the expected link description\n%s", rr.Body.String())
+		}
+		if !strings.Contains(rr.Body.String(), time.Now().Format("2006-01-02 ")) {
+			t.Errorf("Response doesn't contain the expected date\n%s", rr.Body.String())
+		}
+	})
+
 	t.Run("get single link success", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/1", nil)
 		rr := httptest.NewRecorder()

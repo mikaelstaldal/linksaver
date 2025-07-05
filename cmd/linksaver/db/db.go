@@ -49,12 +49,56 @@ func InitDB(dataSourceName string) (*DB, error) {
 		return nil, err
 	}
 
+	_, err = db.Exec(`
+		CREATE VIRTUAL TABLE IF NOT EXISTS links_fts USING fts5(title, description, content='', contentless_delete=1);        
+		-- Triggers to keep the FTS index up to date.
+		CREATE TRIGGER IF NOT EXISTS links_ai AFTER INSERT ON links BEGIN
+		  INSERT INTO links_fts(rowid, title, description) VALUES (new.id, new.title, new.description);
+		END;
+		CREATE TRIGGER IF NOT EXISTS links_ad AFTER DELETE ON links BEGIN
+		  DELETE FROM links_fts WHERE ROWID=old.id;
+		END;
+		CREATE TRIGGER IF NOT EXISTS links_au AFTER UPDATE ON links BEGIN
+		  UPDATE links_fts SET title=new.title, description=new.description WHERE rowid=old.id;
+		END;
+	`)
+	if err != nil {
+		return nil, err
+	}
+
 	return &DB{db}, nil
 }
 
 // GetAllLinks returns all links from the database
 func (db *DB) GetAllLinks() ([]Link, error) {
 	rows, err := db.Query("SELECT id, url, title, description, added_at FROM links ORDER BY added_at DESC")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var links []Link
+	for rows.Next() {
+		var link Link
+		if err := rows.Scan(&link.ID, &link.URL, &link.Title, &link.Description, &link.AddedAt); err != nil {
+			return nil, err
+		}
+		links = append(links, link)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return links, nil
+}
+
+// Search returns links from the database matching a search string
+func (db *DB) Search(s string) ([]Link, error) {
+	rows, err := db.Query(`
+		SELECT l.id, l.url, l.title, l.description, l.added_at
+		FROM links_fts f INNER JOIN links l ON l.id=f.rowid
+		WHERE links_fts MATCH ? ORDER BY rank
+		`, s)
 	if err != nil {
 		return nil, err
 	}

@@ -256,10 +256,21 @@ func (h *Handler) DeleteLink(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) listLinks(w http.ResponseWriter, r *http.Request, status int) {
-	dbLinks, err := h.DB.GetAllLinks()
-	if err != nil {
-		sendError(w, fmt.Sprintf("Failed to get links: %v\n", err), http.StatusInternalServerError)
-		return
+	search := r.URL.Query().Get("s")
+	var dbLinks []db.Link
+	var err error
+	if search != "" {
+		dbLinks, err = h.DB.Search(search)
+		if err != nil {
+			sendError(w, fmt.Sprintf("Failed to search: %v\n", err), http.StatusInternalServerError)
+			return
+		}
+	} else {
+		dbLinks, err = h.DB.GetAllLinks()
+		if err != nil {
+			sendError(w, fmt.Sprintf("Failed to get links: %v\n", err), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	// Format dates in the required format
@@ -269,9 +280,11 @@ func (h *Handler) listLinks(w http.ResponseWriter, r *http.Request, status int) 
 	}
 
 	data := struct {
-		Links []Link
+		Search string
+		Links  []Link
 	}{
-		Links: links,
+		Search: search,
+		Links:  links,
 	}
 	var templateName string
 	if r.Header.Get("HX-Request") == "true" {

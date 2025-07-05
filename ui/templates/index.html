@@ -19,8 +19,7 @@
 
         <main class="bg-white rounded p-4 shadow-sm">
             <section class="mb-4">
-                <h2 class="mb-3 text-secondary">Add New Link</h2>
-                <form hx-post="/" hx-target="#links" hx-swap="outerHTML" _="
+                <form hx-post="/" hx-target="#links" hx-disabled-elt="find button" _="
                           on htmx:afterRequest
                           if event.detail.failed then
                             put event.detail.xhr.responseText into #error
@@ -38,15 +37,29 @@
                             <input type="url" id="url" name="url" class="form-control" required placeholder="https://example.com">
                         </div>
                         <div class="col-auto">
-                            <button type="submit" class="btn btn-success">Save Link</button>
+                            <button type="submit" class="btn btn-primary">Save Link</button>
                         </div>
                     </div>
                 </form>
             </section>
 
-            <section>
-                <h2 class="mb-3 text-secondary">Saved Links</h2>
+            <section class="mb-4">
+                <form hx-get="/" hx-target="#links">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-auto">
+                            <label for="s" class="form-label">Search:</label>
+                        </div>
+                        <div class="col">
+                            <input type="text" id="s" name="s" class="form-control" required>
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-secondary">Search</button>
+                        </div>
+                    </div>
+                </form>
+            </section>
 
+            <section id="links">
                 {{template "links" .}}
             </section>
         </main>
