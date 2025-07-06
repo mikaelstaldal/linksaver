@@ -102,13 +102,13 @@ func (h *Handler) AddLink(w http.ResponseWriter, r *http.Request) {
 	urlToSave := parsedURL.String()
 
 	// Extract title from the URL
-	title, description, screenshot, err := extractTitleAndDescriptionAndScreenshotFromURL(urlToSave)
+	title, description, body, screenshot, err := extractTitleAndDescriptionAndBodyAndScreenshotFromURL(urlToSave)
 	if err != nil {
 		sendError(w, fmt.Sprintf("Failed to load URL: %v", err), http.StatusBadRequest)
 		return
 	}
 
-	id, err := h.DB.AddLink(urlToSave, title, description)
+	id, err := h.DB.AddLink(urlToSave, title, description, body)
 	if err != nil {
 		if errors.Is(err, db.ErrDuplicate) {
 			sendError(w, "URL already exists", http.StatusConflict)
@@ -126,15 +126,15 @@ func (h *Handler) AddLink(w http.ResponseWriter, r *http.Request) {
 	h.listLinks(w, r, http.StatusCreated)
 }
 
-func extractTitleAndDescriptionAndScreenshotFromURL(url string) (string, string, []byte, error) {
+func extractTitleAndDescriptionAndBodyAndScreenshotFromURL(url string) (string, string, string, []byte, error) {
 	response, err := chromedp.RunResponse(browserContext,
 		chromedp.Navigate(url),
 	)
 	if err != nil {
-		return "", "", nil, fmt.Errorf("failed to fetch URL: %w", err)
+		return "", "", "", nil, fmt.Errorf("failed to fetch URL: %w", err)
 	}
 	if response.Status >= 400 {
-		return "", "", nil, fmt.Errorf("failed to fetch URL: %v %v", response.Status, response.StatusText)
+		return "", "", "", nil, fmt.Errorf("failed to fetch URL: %v %v", response.Status, response.StatusText)
 	}
 
 	var title string
@@ -142,7 +142,7 @@ func extractTitleAndDescriptionAndScreenshotFromURL(url string) (string, string,
 		chromedp.Title(&title),
 	)
 	if err != nil {
-		return "", "", nil, fmt.Errorf("failed to extract title: %w", err)
+		return "", "", "", nil, fmt.Errorf("failed to extract title: %w", err)
 	}
 	title = strings.TrimSpace(title)
 
@@ -154,6 +154,16 @@ func extractTitleAndDescriptionAndScreenshotFromURL(url string) (string, string,
 		description = ""
 	}
 	description = strings.TrimSpace(description)
+
+	var body string
+	err = chromedp.Run(browserContext,
+		chromedp.OuterHTML(`body`, &body),
+	)
+	if err != nil {
+		log.Printf("failed to extract body: %v", err)
+		body = ""
+	}
+	body = strings.TrimSpace(body)
 
 	var screenshot []byte
 	err = chromedp.Run(browserContext,
@@ -172,11 +182,11 @@ func extractTitleAndDescriptionAndScreenshotFromURL(url string) (string, string,
 		}),
 	)
 	if err != nil {
-		return "", "", nil, fmt.Errorf("failed to take screenshot: %w", err)
+		return "", "", "", nil, fmt.Errorf("failed to take screenshot: %w", err)
 	}
 
 	if title == "" {
-		return "", "", nil, fmt.Errorf("no title found in HTML")
+		return "", "", "", nil, fmt.Errorf("no title found in HTML")
 	}
 
 	if len(title) > 250 {
@@ -187,7 +197,11 @@ func extractTitleAndDescriptionAndScreenshotFromURL(url string) (string, string,
 		description = description[:1020] + "..."
 	}
 
-	return title, description, screenshot, nil
+	if len(body) > 100000 {
+		body = body[:100000]
+	}
+
+	return title, description, body, screenshot, nil
 }
 
 func saveScreenshot(urlString string, screenshot []byte) error {

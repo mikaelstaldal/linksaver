@@ -24,7 +24,7 @@ func TestHandlers(t *testing.T) {
 		t.Fatalf("Failed to initialize database: %v", err)
 	}
 
-	_, err = database.AddLink(testUrl, testTitle, testDescription)
+	_, err = database.AddLink(testUrl, testTitle, testDescription, "")
 	if err != nil {
 		t.Fatalf("Failed to add link: %v", err)
 	}

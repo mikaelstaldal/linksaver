@@ -50,16 +50,10 @@ func InitDB(dataSourceName string) (*DB, error) {
 	}
 
 	_, err = db.Exec(`
-		CREATE VIRTUAL TABLE IF NOT EXISTS links_fts USING fts5(title, description, content='', contentless_delete=1);        
-		-- Triggers to keep the FTS index up to date.
-		CREATE TRIGGER IF NOT EXISTS links_ai AFTER INSERT ON links BEGIN
-		  INSERT INTO links_fts(rowid, title, description) VALUES (new.id, new.title, new.description);
-		END;
+		CREATE VIRTUAL TABLE IF NOT EXISTS links_fts USING fts5(title, description, body, content='', contentless_delete=1);        
+		-- Trigger to keep the FTS index up to date.
 		CREATE TRIGGER IF NOT EXISTS links_ad AFTER DELETE ON links BEGIN
 		  DELETE FROM links_fts WHERE ROWID=old.id;
-		END;
-		CREATE TRIGGER IF NOT EXISTS links_au AFTER UPDATE ON links BEGIN
-		  UPDATE links_fts SET title=new.title, description=new.description WHERE rowid=old.id;
 		END;
 	`)
 	if err != nil {
@@ -120,7 +114,7 @@ func (db *DB) Search(s string) ([]Link, error) {
 }
 
 // AddLink adds a new link to the database
-func (db *DB) AddLink(url, title, description string) (int64, error) {
+func (db *DB) AddLink(url, title, description, body string) (int64, error) {
 	result, err := db.Exec("INSERT INTO links (url, title, description) VALUES (?, ?, ?)", url, title, description)
 	if err != nil {
 		var sqliteErr *sqlite.Error
@@ -131,6 +125,11 @@ func (db *DB) AddLink(url, title, description string) (int64, error) {
 	}
 
 	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	_, err = db.Exec("INSERT INTO links_fts(rowid, title, description, body) VALUES (?, ?, ?, ?)", id, title, description, body)
 	if err != nil {
 		return 0, err
 	}
