@@ -21,13 +21,23 @@
     <div class="mb-4">
         <form hx-post="/" hx-target="#links" hx-disabled-elt="find button" _="
                           on htmx:afterRequest
-                          if event.detail.failed then
-                            put event.detail.xhr.responseText into #error
-                            show #error
-                          else
-                            put '' into #error
-                            hide #error
-                          end
+                            if event.detail.failed then
+                              put event.detail.xhr.responseText into #error
+                              show #error
+                            else
+                              put '' into #error
+                              hide #error
+                            end
+                          on dragenter
+                            halt the event
+                          on dragover
+                            if event.dataTransfer.types.includes('text/uri-list')
+                              halt the event
+                            end
+                          on drop
+                            put event.dataTransfer.getData('URL') into #url.value
+                            me.requestSubmit()
+                            halt the event
                         ">
             <div class="row g-2 align-items-end">
                 <div class="col-auto">
