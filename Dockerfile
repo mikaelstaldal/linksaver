@@ -7,8 +7,8 @@ COPY go.mod go.sum ./
 # Download dependencies
 RUN go mod download
 
-# Copy the entire source code
-COPY . .
+# Copy the Go source code
+COPY cmd/ cmd
 
 # Build the application
 RUN go build -v -o /app/linksaver ./cmd/linksaver
@@ -19,6 +19,7 @@ WORKDIR /data
 
 COPY --from=builder /app/linksaver /linksaver/linkserver
 COPY run.sh /linksaver/run.sh
+COPY ui/ /linksaver/ui
 
 # Expose the default port
 EXPOSE 8080

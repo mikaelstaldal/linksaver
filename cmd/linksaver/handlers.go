@@ -9,7 +9,6 @@ import (
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
 	"github.com/mikaelstaldal/linksaver/cmd/linksaver/db"
-	"github.com/mikaelstaldal/linksaver/ui"
 	"html/template"
 	"log"
 	"net/http"
@@ -22,6 +21,16 @@ import (
 
 const screenshotDir = "screenshots"
 
+var execDir string
+
+func init() {
+	execPath, err := os.Executable()
+	if err != nil {
+		panic(fmt.Errorf("could not determine executable path: %w", err))
+	}
+	execDir = filepath.Dir(execPath)
+}
+
 // Handler holds dependencies for the handlers
 type Handler struct {
 	DB        *db.DB
@@ -30,7 +39,7 @@ type Handler struct {
 
 // NewHandler creates a new Handler
 func NewHandler(database *db.DB) *Handler {
-	tmpl := template.Must(template.ParseFS(ui.Files, "templates/*.html"))
+	tmpl := template.Must(template.ParseGlob(filepath.Join(execDir, "ui/templates/*.html")))
 
 	return &Handler{
 		DB:        database,
@@ -41,7 +50,7 @@ func NewHandler(database *db.DB) *Handler {
 func (h *Handler) Routes() *http.ServeMux {
 	mux := http.NewServeMux()
 
-	mux.Handle("GET /static/", http.FileServerFS(ui.Files))
+	mux.Handle("GET /static/", http.StripPrefix("/static", http.FileServer(http.Dir(filepath.Join(execDir, "ui/static")))))
 	mux.Handle("GET /screenshots/", http.StripPrefix("/screenshots", http.FileServer(http.Dir(screenshotDir))))
 
 	mux.HandleFunc("GET /{$}", h.ListLinks)
