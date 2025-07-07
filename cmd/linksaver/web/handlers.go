@@ -1,4 +1,4 @@
-package main
+package web
 
 import (
 	"context"
@@ -20,39 +20,37 @@ import (
 	"strings"
 )
 
-const screenshotDir = "screenshots"
-
-var execDir string
-
-func init() {
-	execPath, err := os.Executable()
-	if err != nil {
-		panic(fmt.Errorf("could not determine executable path: %w", err))
-	}
-	execDir = filepath.Dir(execPath)
+// Handlers holds dependencies for the handlers
+type Handlers struct {
+	executableDir  string
+	database       *db.DB
+	screenshotsDir string
+	templates      *template.Template
+	browserContext context.Context
 }
 
-// Handler holds dependencies for the handlers
-type Handler struct {
-	DB        *db.DB
-	Templates *template.Template
-}
+// NewHandlers creates a new Handlers
+func NewHandlers(executableDir string, database *db.DB, screenshotsDir string) *Handlers {
+	tmpl := template.Must(template.ParseGlob(filepath.Join(executableDir, "ui/templates/*.html")))
 
-// NewHandler creates a new Handler
-func NewHandler(database *db.DB) *Handler {
-	tmpl := template.Must(template.ParseGlob(filepath.Join(execDir, "ui/templates/*.html")))
+	dockerURL := "wss://localhost:9222"
+	allocatorContext, _ := chromedp.NewRemoteAllocator(context.Background(), dockerURL)
+	browserContext, _ := chromedp.NewContext(allocatorContext)
 
-	return &Handler{
-		DB:        database,
-		Templates: tmpl,
+	return &Handlers{
+		executableDir:  executableDir,
+		database:       database,
+		screenshotsDir: screenshotsDir,
+		templates:      tmpl,
+		browserContext: browserContext,
 	}
 }
 
-func (h *Handler) Routes() *http.ServeMux {
+func (h *Handlers) Routes() *http.ServeMux {
 	mux := http.NewServeMux()
 
-	mux.Handle("GET /static/", http.StripPrefix("/static", http.FileServer(http.Dir(filepath.Join(execDir, "ui/static")))))
-	mux.Handle("GET /screenshots/", http.StripPrefix("/screenshots", http.FileServer(http.Dir(screenshotDir))))
+	mux.Handle("GET /static/", http.StripPrefix("/static", http.FileServer(http.Dir(filepath.Join(h.executableDir, "ui/static")))))
+	mux.Handle("GET /screenshots/", http.StripPrefix("/screenshots", http.FileServer(http.Dir(h.screenshotsDir))))
 
 	mux.HandleFunc("GET /{$}", h.ListLinks)
 	mux.HandleFunc("POST /{$}", h.AddLink)
@@ -60,14 +58,6 @@ func (h *Handler) Routes() *http.ServeMux {
 	mux.HandleFunc("DELETE /{id}", h.DeleteLink)
 
 	return mux
-}
-
-var browserContext context.Context
-
-func init() {
-	dockerURL := "wss://localhost:9222"
-	allocatorContext, _ := chromedp.NewRemoteAllocator(context.Background(), dockerURL)
-	browserContext, _ = chromedp.NewContext(allocatorContext)
 }
 
 type Link struct {
@@ -80,12 +70,12 @@ type Link struct {
 }
 
 // ListLinks handles the request to list all links
-func (h *Handler) ListLinks(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) ListLinks(w http.ResponseWriter, r *http.Request) {
 	h.listLinks(w, r, http.StatusOK)
 }
 
 // AddLink handles the request to add a new link
-func (h *Handler) AddLink(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) AddLink(w http.ResponseWriter, r *http.Request) {
 	// Parse form data
 	if err := r.ParseForm(); err != nil {
 		sendError(w, "Failed to parse form: "+err.Error(), http.StatusBadRequest)
@@ -112,13 +102,13 @@ func (h *Handler) AddLink(w http.ResponseWriter, r *http.Request) {
 	urlToSave := parsedURL.String()
 
 	// Extract title from the URL
-	title, description, body, screenshot, err := extractTitleAndDescriptionAndBodyAndScreenshotFromURL(urlToSave)
+	title, description, body, screenshot, err := h.extractTitleAndDescriptionAndBodyAndScreenshotFromURL(urlToSave)
 	if err != nil {
 		sendError(w, fmt.Sprintf("Failed to load URL: %v", err), http.StatusBadRequest)
 		return
 	}
 
-	id, err := h.DB.AddLink(urlToSave, title, description, body)
+	id, err := h.database.AddLink(urlToSave, title, description, body)
 	if err != nil {
 		if errors.Is(err, db.ErrDuplicate) {
 			sendError(w, "URL already exists", http.StatusConflict)
@@ -128,7 +118,7 @@ func (h *Handler) AddLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = saveScreenshot(urlToSave, screenshot); err != nil {
+	if err = h.saveScreenshot(urlToSave, screenshot); err != nil {
 		sendError(w, fmt.Sprintf("Failed to save screenshot: %v", err), http.StatusInternalServerError)
 	}
 
@@ -136,8 +126,8 @@ func (h *Handler) AddLink(w http.ResponseWriter, r *http.Request) {
 	h.listLinks(w, r, http.StatusCreated)
 }
 
-func extractTitleAndDescriptionAndBodyAndScreenshotFromURL(url string) (string, string, string, []byte, error) {
-	response, err := chromedp.RunResponse(browserContext,
+func (h *Handlers) extractTitleAndDescriptionAndBodyAndScreenshotFromURL(url string) (string, string, string, []byte, error) {
+	response, err := chromedp.RunResponse(h.browserContext,
 		chromedp.Navigate(url),
 	)
 	if err != nil {
@@ -148,7 +138,7 @@ func extractTitleAndDescriptionAndBodyAndScreenshotFromURL(url string) (string, 
 	}
 
 	var title string
-	err = chromedp.Run(browserContext,
+	err = chromedp.Run(h.browserContext,
 		chromedp.Title(&title),
 	)
 	if err != nil {
@@ -157,7 +147,7 @@ func extractTitleAndDescriptionAndBodyAndScreenshotFromURL(url string) (string, 
 	title = strings.TrimSpace(title)
 
 	var description string
-	err = chromedp.Run(browserContext,
+	err = chromedp.Run(h.browserContext,
 		chromedp.Evaluate(`document.querySelector("head meta[name='description']").content`, &description),
 	)
 	if err != nil {
@@ -166,7 +156,7 @@ func extractTitleAndDescriptionAndBodyAndScreenshotFromURL(url string) (string, 
 	description = strings.TrimSpace(description)
 
 	var body string
-	err = chromedp.Run(browserContext,
+	err = chromedp.Run(h.browserContext,
 		chromedp.OuterHTML(`body`, &body),
 	)
 	if err != nil {
@@ -176,7 +166,7 @@ func extractTitleAndDescriptionAndBodyAndScreenshotFromURL(url string) (string, 
 	body = strings.TrimSpace(body)
 
 	var screenshot []byte
-	err = chromedp.Run(browserContext,
+	err = chromedp.Run(h.browserContext,
 		chromedp.EmulateViewport(800, 600),
 		chromedp.ActionFunc(func(ctx context.Context) error {
 			var err error
@@ -214,9 +204,9 @@ func extractTitleAndDescriptionAndBodyAndScreenshotFromURL(url string) (string, 
 	return title, description, body, screenshot, nil
 }
 
-func saveScreenshot(urlString string, screenshot []byte) error {
+func (h *Handlers) saveScreenshot(urlString string, screenshot []byte) error {
 	filename := screenshotFilename(urlString)
-	path := filepath.Join(screenshotDir, filename)
+	path := filepath.Join(h.screenshotsDir, filename)
 
 	if err := os.WriteFile(path, screenshot, 0644); err != nil {
 		return fmt.Errorf("failed to write screenshot file: %w", err)
@@ -226,7 +216,7 @@ func saveScreenshot(urlString string, screenshot []byte) error {
 }
 
 // GetLink gets a single link
-func (h *Handler) GetLink(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) GetLink(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
@@ -234,7 +224,7 @@ func (h *Handler) GetLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dbLink, err := h.DB.GetLink(id)
+	dbLink, err := h.database.GetLink(id)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
 			sendError(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
@@ -247,7 +237,7 @@ func (h *Handler) GetLink(w http.ResponseWriter, r *http.Request) {
 	// Format dates in the required format
 	link := formatLink(dbLink)
 
-	err = h.Templates.ExecuteTemplate(w, "link", link)
+	err = h.templates.ExecuteTemplate(w, "link", link)
 	if err != nil {
 		sendError(w, fmt.Sprintf("Failed to render link: %v\n", err), http.StatusInternalServerError)
 		return
@@ -255,7 +245,7 @@ func (h *Handler) GetLink(w http.ResponseWriter, r *http.Request) {
 }
 
 // DeleteLink handles the request to delete a link
-func (h *Handler) DeleteLink(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) DeleteLink(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
@@ -263,7 +253,7 @@ func (h *Handler) DeleteLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.DB.DeleteLink(id)
+	err = h.database.DeleteLink(id)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
 			sendError(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
@@ -273,24 +263,24 @@ func (h *Handler) DeleteLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	screenshotPath := filepath.Join(screenshotDir, fmt.Sprintf("%d.png", id))
+	screenshotPath := filepath.Join(h.screenshotsDir, fmt.Sprintf("%d.png", id))
 	if err := os.Remove(screenshotPath); err != nil && !os.IsNotExist(err) {
 		sendError(w, fmt.Sprintf("Failed delete screenshot: %v\n", err), http.StatusInternalServerError)
 	}
 }
 
-func (h *Handler) listLinks(w http.ResponseWriter, r *http.Request, status int) {
+func (h *Handlers) listLinks(w http.ResponseWriter, r *http.Request, status int) {
 	search := r.URL.Query().Get("s")
 	var dbLinks []db.Link
 	var err error
 	if search != "" {
-		dbLinks, err = h.DB.Search(search)
+		dbLinks, err = h.database.Search(search)
 		if err != nil {
 			sendError(w, fmt.Sprintf("Failed to search: %v\n", err), http.StatusInternalServerError)
 			return
 		}
 	} else {
-		dbLinks, err = h.DB.GetAllLinks()
+		dbLinks, err = h.database.GetAllLinks()
 		if err != nil {
 			sendError(w, fmt.Sprintf("Failed to get links: %v\n", err), http.StatusInternalServerError)
 			return
@@ -317,7 +307,7 @@ func (h *Handler) listLinks(w http.ResponseWriter, r *http.Request, status int) 
 		templateName = "index.html"
 	}
 	w.WriteHeader(status)
-	err = h.Templates.ExecuteTemplate(w, templateName, data)
+	err = h.templates.ExecuteTemplate(w, templateName, data)
 	if err != nil {
 		sendError(w, fmt.Sprintf("Failed to render links: %v\n", err), http.StatusInternalServerError)
 		return

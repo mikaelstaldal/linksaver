@@ -1,4 +1,4 @@
-package main
+package web
 
 import (
 	"github.com/mikaelstaldal/linksaver/cmd/linksaver/db"
@@ -34,7 +34,7 @@ func TestHandlers(t *testing.T) {
 		_ = os.Remove(dbFile)
 	})
 
-	handler := NewHandler(database).Routes()
+	handler := NewHandlers("../../..", database, "").Routes()
 
 	t.Run("get all links success", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/", nil)
@@ -42,7 +42,7 @@ func TestHandlers(t *testing.T) {
 		handler.ServeHTTP(rr, req)
 
 		if status := rr.Code; status != http.StatusOK {
-			t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
+			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
 		}
 
 		if !strings.Contains(rr.Body.String(), testUrl) {
@@ -65,7 +65,7 @@ func TestHandlers(t *testing.T) {
 		handler.ServeHTTP(rr, req)
 
 		if status := rr.Code; status != http.StatusOK {
-			t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
+			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
 		}
 
 		if !strings.Contains(rr.Body.String(), testUrl) {
@@ -88,7 +88,7 @@ func TestHandlers(t *testing.T) {
 		handler.ServeHTTP(rr, req)
 
 		if status := rr.Code; status != http.StatusOK {
-			t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
+			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
 		}
 
 		if !strings.Contains(rr.Body.String(), testUrl) {
@@ -108,7 +108,7 @@ func TestHandlers(t *testing.T) {
 		handler.ServeHTTP(rr, req)
 
 		if status := rr.Code; status != http.StatusBadRequest {
-			t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusBadRequest)
+			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusBadRequest)
 		}
 	})
 
@@ -118,7 +118,7 @@ func TestHandlers(t *testing.T) {
 		handler.ServeHTTP(rr, req)
 
 		if status := rr.Code; status != http.StatusNotFound {
-			t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusNotFound)
+			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusNotFound)
 		}
 	})
 
@@ -128,7 +128,7 @@ func TestHandlers(t *testing.T) {
 		handler.ServeHTTP(rr, req)
 
 		if status := rr.Code; status != http.StatusOK {
-			t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
+			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
 		}
 
 		// Verify link was deleted
@@ -144,7 +144,7 @@ func TestHandlers(t *testing.T) {
 		handler.ServeHTTP(rr, req)
 
 		if status := rr.Code; status != http.StatusBadRequest {
-			t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusBadRequest)
+			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusBadRequest)
 		}
 	})
 
@@ -154,7 +154,7 @@ func TestHandlers(t *testing.T) {
 		handler.ServeHTTP(rr, req)
 
 		if status := rr.Code; status != http.StatusNotFound {
-			t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusNotFound)
+			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusNotFound)
 		}
 	})
 }

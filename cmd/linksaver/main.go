@@ -4,13 +4,25 @@ import (
 	"flag"
 	"fmt"
 	"github.com/mikaelstaldal/linksaver/cmd/linksaver/db"
+	"github.com/mikaelstaldal/linksaver/cmd/linksaver/web"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 )
 
+const databaseName = "linksaver.sqlite"
+const screenshotsDir = "screenshots"
+
 func main() {
+	// Determine the path of executable
+	executablePath, err := os.Executable()
+	if err != nil {
+		log.Fatalf("could not determine executable path: %v", err)
+	}
+	executableDir := filepath.Dir(executablePath)
+
 	// Define command line flags
 	port := flag.Int("port", 8080, "port to listen on")
 	flag.Parse()
@@ -20,16 +32,16 @@ func main() {
 	}
 
 	// Initialize database
-	database, err := db.InitDB("linksaver.sqlite")
+	database, err := db.InitDB(databaseName)
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
-	if err := os.MkdirAll("screenshots", 0755); err != nil {
+	if err := os.MkdirAll(screenshotsDir, 0755); err != nil {
 		log.Fatalf("failed to create screenshots directory: %v", err)
 	}
 
 	// Initialize handlers
-	h := NewHandler(database)
+	h := web.NewHandlers(executableDir, database, screenshotsDir)
 
 	// Start server
 	serverAddr := fmt.Sprintf(":%d", *port)
