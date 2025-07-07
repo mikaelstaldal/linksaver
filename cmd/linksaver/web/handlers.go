@@ -18,6 +18,7 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Handlers holds dependencies for the handlers
@@ -65,7 +66,7 @@ type Link struct {
 	URL         string
 	Title       string
 	Description string
-	AddedAt     string
+	AddedAt     time.Time
 	Screenshot  string
 }
 
@@ -326,7 +327,7 @@ func formatLink(dbLink db.Link) Link {
 		URL:         dbLink.URL,
 		Title:       dbLink.Title,
 		Description: description,
-		AddedAt:     dbLink.AddedAt.Format("2006-01-02 15:04:05 MST"),
+		AddedAt:     dbLink.AddedAt,
 		Screenshot:  screenshotFilename(dbLink.URL),
 	}
 }

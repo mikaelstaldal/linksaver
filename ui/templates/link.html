@@ -8,7 +8,7 @@
             <div class="flex-grow-1">
                 <div><a href="{{.URL}}" target="_blank" class="text-decoration-none text-muted small text-nowrap">{{.URL}}</a>
                 </div>
-                <div class="text-muted small text-nowrap">Added: {{.AddedAt}}</div>
+                <div class="text-muted small text-nowrap">Added: {{.AddedAt.Format "2006-01-02 15:04:05 MST"}}</div>
             </div>
             <div class="ms-3 align-self-end">
                 <button class="btn btn-danger btn-sm"
