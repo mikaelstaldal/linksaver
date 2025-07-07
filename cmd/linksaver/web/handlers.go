@@ -32,7 +32,8 @@ type Handlers struct {
 
 // NewHandlers creates a new Handlers
 func NewHandlers(executableDir string, database *db.DB, screenshotsDir string) *Handlers {
-	tmpl := template.Must(template.ParseGlob(filepath.Join(executableDir, "ui/templates/*.html")))
+	templates := template.Must(template.New("").Funcs(template.FuncMap{"screenshotFilename": screenshotFilename}).
+		ParseGlob(filepath.Join(executableDir, "ui/templates/*.html")))
 
 	dockerURL := "wss://localhost:9222"
 	allocatorContext, _ := chromedp.NewRemoteAllocator(context.Background(), dockerURL)
@@ -42,7 +43,7 @@ func NewHandlers(executableDir string, database *db.DB, screenshotsDir string) *
 		executableDir:  executableDir,
 		database:       database,
 		screenshotsDir: screenshotsDir,
-		templates:      tmpl,
+		templates:      templates,
 		browserContext: browserContext,
 	}
 }
@@ -235,10 +236,7 @@ func (h *Handlers) GetLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Format dates in the required format
-	link := formatLink(dbLink)
-
-	err = h.templates.ExecuteTemplate(w, "link", link)
+	err = h.templates.ExecuteTemplate(w, "link", dbLink)
 	if err != nil {
 		sendError(w, fmt.Sprintf("Failed to render link: %v\n", err), http.StatusInternalServerError)
 		return
@@ -289,14 +287,14 @@ func (h *Handlers) listLinks(w http.ResponseWriter, r *http.Request, status int)
 	}
 
 	// Format dates in the required format
-	links := make([]Link, 0, len(dbLinks))
+	links := make([]db.Link, 0, len(dbLinks))
 	for _, dbLink := range dbLinks {
-		links = append(links, formatLink(dbLink))
+		links = append(links, dbLink)
 	}
 
 	data := struct {
 		Search string
-		Links  []Link
+		Links  []db.Link
 	}{
 		Search: search,
 		Links:  links,
@@ -312,23 +310,6 @@ func (h *Handlers) listLinks(w http.ResponseWriter, r *http.Request, status int)
 	if err != nil {
 		sendError(w, fmt.Sprintf("Failed to render links: %v\n", err), http.StatusInternalServerError)
 		return
-	}
-}
-
-func formatLink(dbLink db.Link) Link {
-	var description string
-	if dbLink.Description != "" {
-		description = dbLink.Description
-	} else {
-		description = dbLink.Title
-	}
-	return Link{
-		ID:          dbLink.ID,
-		URL:         dbLink.URL,
-		Title:       dbLink.Title,
-		Description: description,
-		AddedAt:     dbLink.AddedAt,
-		Screenshot:  screenshotFilename(dbLink.URL),
 	}
 }
 

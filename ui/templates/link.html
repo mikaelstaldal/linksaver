@@ -3,7 +3,7 @@
     <div class="links-grid-header">
         <h5><a href="{{.URL}}" target="_blank"
                class="text-decoration-none d-inline-block text-truncate w-100"
-               title="{{.Description}}">{{.Title}}</a></h5>
+               title="{{or .Description .Title}}">{{.Title}}</a></h5>
         <div class="d-flex justify-content-between align-items-start">
             <div class="flex-grow-1">
                 <div><a href="{{.URL}}" target="_blank" class="text-decoration-none text-muted small text-nowrap">{{.URL}}</a>
@@ -32,7 +32,7 @@
     </div>
     <div>
         <a href="{{.URL}}" target="_blank" class="text-decoration-none"><img
-                src="screenshots/{{.Screenshot}}" width="800" height="600" class="img-fluid" alt=""/></a>
+                src="screenshots/{{.URL | screenshotFilename}}" width="800" height="600" class="img-fluid" alt=""/></a>
     </div>
 </div>
 {{end}}
