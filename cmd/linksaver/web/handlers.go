@@ -1,6 +1,7 @@
 package web
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -236,11 +237,7 @@ func (h *Handlers) GetLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.templates.ExecuteTemplate(w, "link", dbLink)
-	if err != nil {
-		sendError(w, fmt.Sprintf("Failed to render link: %v\n", err), http.StatusInternalServerError)
-		return
-	}
+	h.render(w, "link", dbLink, http.StatusOK)
 }
 
 // DeleteLink handles the request to delete a link
@@ -305,17 +302,18 @@ func (h *Handlers) listLinks(w http.ResponseWriter, r *http.Request, status int)
 	} else {
 		templateName = "index.html"
 	}
-	w.WriteHeader(status)
-	err = h.templates.ExecuteTemplate(w, templateName, data)
-	if err != nil {
-		sendError(w, fmt.Sprintf("Failed to render links: %v\n", err), http.StatusInternalServerError)
-		return
-	}
+	h.render(w, templateName, data, status)
 }
 
-func screenshotFilename(urlString string) string {
-	hash := sha256.Sum256([]byte(urlString))
-	return hex.EncodeToString(hash[:]) + ".png"
+func (h *Handlers) render(w http.ResponseWriter, name string, data any, status int) {
+	buf := new(bytes.Buffer)
+	err := h.templates.ExecuteTemplate(buf, name, data)
+	if err != nil {
+		sendError(w, fmt.Sprintf("Failed to render %s: %v\n", name, err), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(status)
+	_, _ = buf.WriteTo(w)
 }
 
 func sendError(w http.ResponseWriter, errorMessage string, status int) {
@@ -328,4 +326,9 @@ func sendError(w http.ResponseWriter, errorMessage string, status int) {
 	}
 	w.WriteHeader(status)
 	_, _ = fmt.Fprintln(w, message)
+}
+
+func screenshotFilename(urlString string) string {
+	hash := sha256.Sum256([]byte(urlString))
+	return hex.EncodeToString(hash[:]) + ".png"
 }
