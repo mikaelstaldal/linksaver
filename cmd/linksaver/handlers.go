@@ -15,6 +15,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"strconv"
 	"strings"
 )
@@ -348,7 +349,7 @@ func screenshotFilename(urlString string) string {
 func sendError(w http.ResponseWriter, errorMessage string, status int) {
 	var message string
 	if status >= 500 {
-		log.Println(errorMessage)
+		log.Println(errorMessage + "\n" + string(debug.Stack()))
 		message = http.StatusText(status)
 	} else {
 		message = errorMessage
