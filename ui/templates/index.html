@@ -11,12 +11,13 @@
             integrity="sha384-Akqfrbj/HpNVo8k11SXBb6TlBWmXXlYQrCSqEWmyKJe+hDm3Z/B2WVG4smwBkRVm"></script>
     <script src="static/hyperscript.0.9.14.min.js"
             integrity="sha384-NzchC8z9HmP/Ed8cheGl9XuSrFSkDNHPiDl+ujbHE0F0I7tWC4rUnwPXP+7IvVZv"></script>
+    <meta name="htmx-config" content='{"includeIndicatorStyles":false}'>
 </head>
 <body>
 <div class="container mt-4 mb-4">
     <h2 class="text-secondary">Link Saver</h2>
 
-    <div class="alert alert-danger" role="alert" id="error" style="display: none"></div>
+    <div class="alert alert-danger d-none" role="alert" id="error"></div>
 
     <div class="mb-4">
         <form hx-post="/" hx-target="#links" hx-disabled-elt="find button" _="

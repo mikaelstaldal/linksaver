@@ -49,7 +49,7 @@ func NewHandlers(executableDir string, database *db.DB, screenshotsDir string) *
 	}
 }
 
-func (h *Handlers) Routes() *http.ServeMux {
+func (h *Handlers) Routes() http.Handler {
 	mux := http.NewServeMux()
 
 	mux.Handle("GET /static/", http.StripPrefix("/static", http.FileServer(http.Dir(filepath.Join(h.executableDir, "ui/static")))))
@@ -60,7 +60,7 @@ func (h *Handlers) Routes() *http.ServeMux {
 	mux.HandleFunc("GET /{id}", h.GetLink)
 	mux.HandleFunc("DELETE /{id}", h.DeleteLink)
 
-	return mux
+	return commonHeaders(mux)
 }
 
 type Link struct {
