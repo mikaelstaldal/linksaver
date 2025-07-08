@@ -79,14 +79,12 @@ func (h *Handlers) ListLinks(w http.ResponseWriter, r *http.Request) {
 
 // AddLink handles the request to add a new link
 func (h *Handlers) AddLink(w http.ResponseWriter, r *http.Request) {
-	// Parse form data
 	if err := r.ParseForm(); err != nil {
-		sendError(w, "Failed to parse form: "+err.Error(), http.StatusBadRequest)
+		sendError(w, fmt.Sprintf("Failed to parse form: %v", err), http.StatusBadRequest)
 		return
 	}
 
-	urlString := r.FormValue("url")
-
+	urlString := r.PostForm.Get("url")
 	if urlString == "" {
 		sendError(w, "URL is required", http.StatusBadRequest)
 		return
@@ -223,7 +221,7 @@ func (h *Handlers) GetLink(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		sendError(w, "Invalid ID: "+err.Error(), http.StatusBadRequest)
+		sendError(w, fmt.Sprintf("Invalid ID: %v", err), http.StatusBadRequest)
 		return
 	}
 
@@ -245,7 +243,7 @@ func (h *Handlers) DeleteLink(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
-		sendError(w, "Invalid ID: "+err.Error(), http.StatusBadRequest)
+		sendError(w, fmt.Sprintf("Invalid ID: %v", err), http.StatusBadRequest)
 		return
 	}
 
