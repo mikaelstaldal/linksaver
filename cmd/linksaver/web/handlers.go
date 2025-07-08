@@ -60,7 +60,7 @@ func (h *Handlers) Routes() http.Handler {
 	mux.HandleFunc("GET /{id}", h.GetLink)
 	mux.HandleFunc("DELETE /{id}", h.DeleteLink)
 
-	return recoverPanic(commonHeaders(mux))
+	return commonHeaders(mux)
 }
 
 type Link struct {
