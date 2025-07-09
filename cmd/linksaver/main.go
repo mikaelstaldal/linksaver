@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"github.com/mikaelstaldal/linksaver/cmd/linksaver/db"
 	"github.com/mikaelstaldal/linksaver/cmd/linksaver/web"
+	"golang.org/x/crypto/bcrypt"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -31,6 +33,28 @@ func main() {
 		log.Fatalf("Invalid port number: %d. Must be between 1 and 65535", *port)
 	}
 
+	var usernameBcryptHash []byte
+	var passwordBcryptHash []byte
+	basicAuth := os.Getenv("BASIC_AUTH")
+	if basicAuth != "" {
+		username, passwordBcryptHashStr, ok := strings.Cut(basicAuth, ":")
+		if !ok {
+			log.Fatalf("Invalid BASIC_AUTH value '%s'", basicAuth)
+		}
+		passwordBcryptHash = []byte(passwordBcryptHashStr)
+		_, err := bcrypt.Cost(passwordBcryptHash)
+		if err != nil {
+			log.Fatalf("Invalid BASIC_AUTH bcrypt hash '%s': %v", passwordBcryptHashStr, err)
+		}
+
+		usernameBcryptHash, err = bcrypt.GenerateFromPassword([]byte(username), bcrypt.MinCost)
+		if err != nil {
+			log.Fatalf("Failed to hash username: %v", err)
+		}
+
+		log.Println("Using HTTP basic authentication")
+	}
+
 	// Initialize database
 	database, err := db.InitDB(databaseName)
 	if err != nil {
@@ -41,7 +65,7 @@ func main() {
 	}
 
 	// Initialize handlers
-	h := web.NewHandlers(executableDir, database, screenshotsDir)
+	h := web.NewHandlers(executableDir, database, screenshotsDir, usernameBcryptHash, passwordBcryptHash)
 
 	// Start server
 	serverAddr := fmt.Sprintf(":%d", *port)

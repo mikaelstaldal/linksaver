@@ -24,15 +24,17 @@ import (
 
 // Handlers holds dependencies for the handlers
 type Handlers struct {
-	executableDir  string
-	database       *db.DB
-	screenshotsDir string
-	templates      *template.Template
-	browserContext context.Context
+	executableDir      string
+	database           *db.DB
+	screenshotsDir     string
+	templates          *template.Template
+	browserContext     context.Context
+	usernameBcryptHash []byte
+	passwordBcryptHash []byte
 }
 
 // NewHandlers creates a new Handlers
-func NewHandlers(executableDir string, database *db.DB, screenshotsDir string) *Handlers {
+func NewHandlers(executableDir string, database *db.DB, screenshotsDir string, usernameBcryptHash, passwordBcryptHash []byte) *Handlers {
 	templates := template.Must(template.New("").Funcs(template.FuncMap{"screenshotFilename": screenshotFilename}).
 		ParseGlob(filepath.Join(executableDir, "ui/templates/*.html")))
 
@@ -41,11 +43,13 @@ func NewHandlers(executableDir string, database *db.DB, screenshotsDir string) *
 	browserContext, _ := chromedp.NewContext(allocatorContext)
 
 	return &Handlers{
-		executableDir:  executableDir,
-		database:       database,
-		screenshotsDir: screenshotsDir,
-		templates:      templates,
-		browserContext: browserContext,
+		executableDir:      executableDir,
+		database:           database,
+		screenshotsDir:     screenshotsDir,
+		templates:          templates,
+		browserContext:     browserContext,
+		usernameBcryptHash: usernameBcryptHash,
+		passwordBcryptHash: passwordBcryptHash,
 	}
 }
 
@@ -60,7 +64,11 @@ func (h *Handlers) Routes() http.Handler {
 	mux.HandleFunc("GET /{id}", h.GetLink)
 	mux.HandleFunc("DELETE /{id}", h.DeleteLink)
 
-	return commonHeaders(mux)
+	if h.usernameBcryptHash != nil && h.passwordBcryptHash != nil {
+		return commonHeaders(h.basicAuth(mux))
+	} else {
+		return commonHeaders(mux)
+	}
 }
 
 type Link struct {

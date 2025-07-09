@@ -2,6 +2,7 @@ package web
 
 import (
 	"github.com/mikaelstaldal/linksaver/cmd/linksaver/db"
+	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -17,6 +18,8 @@ func TestHandlers(t *testing.T) {
 	testUrl := "https://www.some-test-url.com"
 	testTitle := "Test Title"
 	testDescription := "Test Description"
+	testUsername := "test username"
+	testPassword := "test password"
 
 	// Initialize the database
 	database, err := db.InitDB(dbFile)
@@ -34,10 +37,22 @@ func TestHandlers(t *testing.T) {
 		_ = os.Remove(dbFile)
 	})
 
-	handler := NewHandlers("../../..", database, "").Routes()
+	usernameBcryptHash, err := bcrypt.GenerateFromPassword([]byte(testUsername), bcrypt.MinCost)
+	if err != nil {
+		t.Fatalf("Failed to hash username: %v", err)
+	}
+	t.Logf("Username: %v", string(usernameBcryptHash))
+
+	passwordBcryptHash, err := bcrypt.GenerateFromPassword([]byte(testPassword), bcrypt.MinCost)
+	if err != nil {
+		t.Fatalf("Failed to hash password: %v", err)
+	}
+
+	handler := NewHandlers("../../..", database, "", usernameBcryptHash, passwordBcryptHash).Routes()
 
 	t.Run("get all links success", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/", nil)
+		req.SetBasicAuth(testUsername, testPassword)
 		rr := httptest.NewRecorder()
 		handler.ServeHTTP(rr, req)
 
@@ -61,6 +76,7 @@ func TestHandlers(t *testing.T) {
 
 	t.Run("search success", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/?s=test", nil)
+		req.SetBasicAuth(testUsername, testPassword)
 		rr := httptest.NewRecorder()
 		handler.ServeHTTP(rr, req)
 
@@ -84,6 +100,7 @@ func TestHandlers(t *testing.T) {
 
 	t.Run("get single link success", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/1", nil)
+		req.SetBasicAuth(testUsername, testPassword)
 		rr := httptest.NewRecorder()
 		handler.ServeHTTP(rr, req)
 
@@ -104,6 +121,7 @@ func TestHandlers(t *testing.T) {
 
 	t.Run("get single link invalid id", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/invalid", nil)
+		req.SetBasicAuth(testUsername, testPassword)
 		rr := httptest.NewRecorder()
 		handler.ServeHTTP(rr, req)
 
@@ -114,6 +132,7 @@ func TestHandlers(t *testing.T) {
 
 	t.Run("get single link not found", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/999", nil)
+		req.SetBasicAuth(testUsername, testPassword)
 		rr := httptest.NewRecorder()
 		handler.ServeHTTP(rr, req)
 
@@ -124,6 +143,7 @@ func TestHandlers(t *testing.T) {
 
 	t.Run("delete link success", func(t *testing.T) {
 		req := httptest.NewRequest("DELETE", "/1", nil)
+		req.SetBasicAuth(testUsername, testPassword)
 		rr := httptest.NewRecorder()
 		handler.ServeHTTP(rr, req)
 
@@ -140,6 +160,7 @@ func TestHandlers(t *testing.T) {
 
 	t.Run("delete link invalid id", func(t *testing.T) {
 		req := httptest.NewRequest("DELETE", "/invalid", nil)
+		req.SetBasicAuth(testUsername, testPassword)
 		rr := httptest.NewRecorder()
 		handler.ServeHTTP(rr, req)
 
@@ -150,6 +171,7 @@ func TestHandlers(t *testing.T) {
 
 	t.Run("delete link not found", func(t *testing.T) {
 		req := httptest.NewRequest("DELETE", "/999", nil)
+		req.SetBasicAuth(testUsername, testPassword)
 		rr := httptest.NewRecorder()
 		handler.ServeHTTP(rr, req)
 
@@ -157,4 +179,15 @@ func TestHandlers(t *testing.T) {
 			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusNotFound)
 		}
 	})
+
+	t.Run("unauthorized", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/", nil)
+		rr := httptest.NewRecorder()
+		handler.ServeHTTP(rr, req)
+
+		if status := rr.Code; status != http.StatusUnauthorized {
+			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusUnauthorized)
+		}
+	})
+
 }

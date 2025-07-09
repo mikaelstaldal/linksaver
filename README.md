@@ -9,6 +9,7 @@ provides a web interface for organizing your bookmarks.
 - **Save Links**: Add URLs with automatic title and description extraction and screenshots from web pages
 - **SQLite Storage**: Lightweight, file-based database with no external dependencies
 - **Docker Support**: Easy deployment with Docker containers
+- **HTTP basic auth**: Protect the application with username and password
 
 ## Prerequisites
 
@@ -22,10 +23,16 @@ provides a web interface for organizing your bookmarks.
    docker build -t linksaver .
    ```
 
-2. Run the container:
+2. Run the container without authentication:
    ```bash
    docker run --mount "type=bind,src=$(pwd)/data,dst=/data" -p 8080:8080 linksaver
    ```
+
+3. Run the container with HTTP basic authentication:
+   ```bash
+   docker run --mount "type=bind,src=$(pwd)/data,dst=/data" -p 8080:8080 -e BASIC_AUTH=$(htpasswd -nBC 12 my_username) linksaver
+   ```
+Note: This is only secure if you also use https.   
 
 ## Usage
 
@@ -47,7 +54,7 @@ From the web interface, you can:
 ### Project Structure
 
 ```
-├── cmd/linksaver/           # Main application
+├── cmd/linksaver/          # Main application
 │   ├── main.go             # Application entry point
 │   ├── handlers.go         # HTTP request handlers
 │   ├── handlers_test.go    # Handler tests
@@ -56,8 +63,7 @@ From the web interface, you can:
 │       └── db_test.go      # Database tests
 ├── ui/                     # User interface assets
 │   ├── templates/          # HTML templates
-│   ├── static/             # CSS, JavaScript files
-│   └── efs.go              # Embedded file system
+│   └── static/             # CSS, JavaScript files
 ├── Dockerfile              # Docker configuration
 ├── run.sh                  # Start script for Docker image
 ├── go.mod                  # Go module definition
