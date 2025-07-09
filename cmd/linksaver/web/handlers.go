@@ -12,6 +12,7 @@ import (
 	"github.com/mikaelstaldal/linksaver/cmd/linksaver/db"
 	"html/template"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -37,6 +38,9 @@ type Handlers struct {
 func NewHandlers(executableDir string, database *db.DB, screenshotsDir string, usernameBcryptHash, passwordBcryptHash []byte) *Handlers {
 	templates := template.Must(template.New("").Funcs(template.FuncMap{"screenshotFilename": screenshotFilename}).
 		ParseGlob(filepath.Join(executableDir, "ui/templates/*.html")))
+	if templates == nil {
+		log.Fatalf("No templates found in %s", filepath.Join(executableDir, "ui/templates/*.html"))
+	}
 
 	dockerURL := "wss://localhost:9222"
 	allocatorContext, _ := chromedp.NewRemoteAllocator(context.Background(), dockerURL)
@@ -100,11 +104,7 @@ func (h *Handlers) AddLink(w http.ResponseWriter, r *http.Request) {
 
 	// Parse and validate URL
 	parsedURL, err := url.Parse(urlString)
-	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") ||
-		parsedURL.Host == "" || strings.HasPrefix(strings.ToLower(parsedURL.Host), "localhost") ||
-		strings.HasPrefix(parsedURL.Host, "127.") ||
-		strings.HasPrefix(parsedURL.Host, "0.") ||
-		strings.HasPrefix(parsedURL.Host, "::1") {
+	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") || isPrivateOrLocalhost(parsedURL.Host) {
 		sendError(w, "Invalid URL format. Must be a valid HTTP/HTTPS URL", http.StatusBadRequest)
 		return
 	}
@@ -133,6 +133,16 @@ func (h *Handlers) AddLink(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Location", fmt.Sprintf("/%v", id))
 	h.listLinks(w, r, http.StatusCreated)
+}
+
+func isPrivateOrLocalhost(host string) bool {
+	ip := net.ParseIP(host)
+	if ip != nil {
+		return ip.IsLoopback() || ip.IsPrivate() || ip.IsUnspecified()
+	}
+	// Handle hostname cases
+	return host == "" || strings.HasPrefix(strings.ToLower(host), "localhost") ||
+		strings.HasSuffix(strings.ToLower(host), ".localhost")
 }
 
 func (h *Handlers) extractTitleAndDescriptionAndBodyAndScreenshotFromURL(url string) (string, string, string, []byte, error) {
@@ -267,7 +277,7 @@ func (h *Handlers) DeleteLink(w http.ResponseWriter, r *http.Request) {
 
 	screenshotPath := filepath.Join(h.screenshotsDir, fmt.Sprintf("%d.png", id))
 	if err := os.Remove(screenshotPath); err != nil && !os.IsNotExist(err) {
-		sendError(w, fmt.Sprintf("Failed delete screenshot: %v\n", err), http.StatusInternalServerError)
+		log.Printf("Failed to delete screenshot: %v\n", err)
 	}
 }
 
@@ -289,18 +299,12 @@ func (h *Handlers) listLinks(w http.ResponseWriter, r *http.Request, status int)
 		}
 	}
 
-	// Format dates in the required format
-	links := make([]db.Link, 0, len(dbLinks))
-	for _, dbLink := range dbLinks {
-		links = append(links, dbLink)
-	}
-
 	data := struct {
 		Search string
 		Links  []db.Link
 	}{
 		Search: search,
-		Links:  links,
+		Links:  dbLinks,
 	}
 	var templateName string
 	if r.Header.Get("HX-Request") == "true" {

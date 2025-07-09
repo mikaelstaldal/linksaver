@@ -24,10 +24,10 @@
                           on htmx:afterRequest
                             if the event's detail.failed then
                               put the event's detail.xhr.responseText into #error
-                              show #error
+                              remove .d-none from #error
                             else
                               put '' into #error
-                              hide #error
+                              add .d-none to #error
                             end
                           on dragenter
                             halt the event
