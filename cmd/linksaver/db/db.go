@@ -36,7 +36,15 @@ func InitDB(dataSourceName string) (*DB, error) {
 		return nil, err
 	}
 
-	_, err = db.Exec(`
+	tx, err := db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer func(tx *sql.Tx) {
+		_ = tx.Rollback()
+	}(tx)
+
+	_, err = tx.Exec(`
 		CREATE TABLE IF NOT EXISTS links (
 			id INTEGER PRIMARY KEY,
 			url TEXT NOT NULL UNIQUE,
@@ -49,13 +57,18 @@ func InitDB(dataSourceName string) (*DB, error) {
 		return nil, err
 	}
 
-	_, err = db.Exec(`
+	_, err = tx.Exec(`
 		CREATE VIRTUAL TABLE IF NOT EXISTS links_fts USING fts5(title, description, body, content='', contentless_delete=1);        
 		-- Trigger to keep the FTS index up to date.
 		CREATE TRIGGER IF NOT EXISTS links_ad AFTER DELETE ON links BEGIN
 		  DELETE FROM links_fts WHERE ROWID=old.id;
 		END;
 	`)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +128,15 @@ func (db *DB) Search(s string) ([]Link, error) {
 
 // AddLink adds a new link to the database
 func (db *DB) AddLink(url, title, description, body string) (int64, error) {
-	result, err := db.Exec("INSERT INTO links (url, title, description) VALUES (?, ?, ?)", url, title, description)
+	tx, err := db.Begin()
+	if err != nil {
+		return 0, err
+	}
+	defer func(tx *sql.Tx) {
+		_ = tx.Rollback()
+	}(tx)
+
+	result, err := tx.Exec("INSERT INTO links (url, title, description) VALUES (?, ?, ?)", url, title, description)
 	if err != nil {
 		var sqliteErr *sqlite.Error
 		if errors.As(err, &sqliteErr) && sqliteErr.Code() == sqlite3.SQLITE_CONSTRAINT_UNIQUE {
@@ -129,7 +150,12 @@ func (db *DB) AddLink(url, title, description, body string) (int64, error) {
 		return 0, err
 	}
 
-	_, err = db.Exec("INSERT INTO links_fts(rowid, title, description, body) VALUES (?, ?, ?, ?)", id, title, description, body)
+	_, err = tx.Exec("INSERT INTO links_fts(rowid, title, description, body) VALUES (?, ?, ?, ?)", id, title, description, body)
+	if err != nil {
+		return 0, err
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		return 0, err
 	}
