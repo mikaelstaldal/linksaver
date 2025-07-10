@@ -25,12 +25,12 @@ provides a web interface for organizing your bookmarks.
 
 2. Run the container without authentication:
    ```bash
-   docker run --mount "type=bind,src=$(pwd)/data,dst=/data" -p 8080:8080 linksaver
+   docker run --mount "type=bind,src=$(pwd)/data,dst=/data" --cap-drop ALL --security-opt no-new-privileges -p 127.0.0.1:8080:8080 linksaver
    ```
 
 3. Run the container with HTTP basic authentication:
    ```bash
-   docker run --mount "type=bind,src=$(pwd)/data,dst=/data" -p 8080:8080 -e BASIC_AUTH=$(htpasswd -nBC 12 my_username) linksaver
+   docker run --mount "type=bind,src=$(pwd)/data,dst=/data" --cap-drop ALL --security-opt no-new-privileges -p 127.0.0.1:8080:8080 -e BASIC_AUTH=$(htpasswd -nBC 12 my_username) linksaver
    ```
 Note: This is only secure if you also use https.   
 
