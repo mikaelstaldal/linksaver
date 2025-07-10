@@ -127,7 +127,7 @@ func (db *DB) Search(s string) ([]Link, error) {
 }
 
 // AddLink adds a new link to the database
-func (db *DB) AddLink(url, title, description, body string) (int64, error) {
+func (db *DB) AddLink(url, title, description string, body []byte) (int64, error) {
 	tx, err := db.Begin()
 	if err != nil {
 		return 0, err

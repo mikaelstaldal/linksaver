@@ -60,9 +60,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
-	if err := os.MkdirAll(screenshotsDir, 0755); err != nil {
-		log.Fatalf("failed to create screenshots directory: %v", err)
-	}
 
 	// Initialize handlers
 	h := web.NewHandlers(executableDir, database, screenshotsDir, usernameBcryptHash, passwordBcryptHash)

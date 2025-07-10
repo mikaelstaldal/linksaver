@@ -15,6 +15,8 @@ RUN go build -v -o /app/linksaver ./cmd/linksaver
 
 FROM chromedp/headless-shell:latest@sha256:24b6acd183756b9cdc9b2c951141cefbc645a9b6a18341975babf0911a30c7e5
 
+ENV CHROMEDP="wss://localhost:9222"
+
 WORKDIR /data
 
 COPY --from=builder /app/linksaver /linksaver/linkserver

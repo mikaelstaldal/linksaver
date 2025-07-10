@@ -26,7 +26,7 @@ func TestDB(t *testing.T) {
 	title := "Example Website"
 	description := "This is an example website"
 	body := "<body><p>Some peculiar text in the body</p></body>"
-	id, err := database.AddLink(url, title, description, body)
+	id, err := database.AddLink(url, title, description, []byte(body))
 	if err != nil {
 		t.Fatalf("Failed to add link: %v", err)
 	}
@@ -39,7 +39,7 @@ func TestDB(t *testing.T) {
 	title2 := "Fun page"
 	description2 := "Here some completely different content"
 	body2 := "<body><p>Other body data</p></body>"
-	id2, err := database.AddLink(url2, title2, description2, body2)
+	id2, err := database.AddLink(url2, title2, description2, []byte(body2))
 	if err != nil {
 		t.Fatalf("Failed to add link 2: %v", err)
 	}
@@ -51,7 +51,7 @@ func TestDB(t *testing.T) {
 	}
 
 	// Test adding duplicate link
-	_, err = database.AddLink(url, "bogus", "", "")
+	_, err = database.AddLink(url, "bogus", "", nil)
 	if err != ErrDuplicate {
 		t.Fatalf("Expected error adding duplicate link")
 	}

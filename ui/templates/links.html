@@ -8,8 +8,14 @@
 {{end}}
 {{if .Links}}
     <div class="links-grid rounded p-4">
-        {{range .Links}}
-        {{template "link" .}}
+        {{if .ShowScreenshots}}
+            {{range .Links}}
+                {{template "link-with-screenshot" .}}
+            {{end}}
+        {{else}}
+            {{range .Links}}
+                {{template "link-without-screenshot" .}}
+            {{end}}
         {{end}}
     </div>
 {{else if .Search}}

@@ -1,4 +1,4 @@
-{{define "link"}}
+{{define "link-without-screenshot"}}
 <div class="links-grid-item list-group-item border rounded shadow-sm p-1">
     <div class="links-grid-header">
         <h5><a href="{{.URL}}" target="_blank"
@@ -29,10 +29,6 @@
                 </button>
             </div>
         </div>
-    </div>
-    <div>
-        <a href="{{.URL}}" target="_blank" class="text-decoration-none"><img
-                src="screenshots/{{.URL | screenshotFilename}}" width="800" height="600" class="img-fluid" alt=""/></a>
     </div>
 </div>
 {{end}}
