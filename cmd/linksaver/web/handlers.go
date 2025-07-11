@@ -63,9 +63,13 @@ func NewHandlers(executableDir string, database *db.DB, screenshotsDir string, u
 	templates := template.New("").Funcs(template.FuncMap{"screenshotFilename": screenshotFilename})
 
 	templatesDir := filepath.Join(executableDir, "ui/templates")
-	var err error
-	if fileInfo, statErr := os.Stat(templatesDir); statErr == nil && fileInfo.IsDir() {
-		templates, err = templates.ParseGlob(filepath.Join(templatesDir, "*.html"))
+	templateFiles, err := filepath.Glob(filepath.Join(templatesDir, "*.html"))
+	if err != nil {
+		log.Fatalf("Unable to glob templates: %v", err)
+	}
+
+	if len(templateFiles) > 0 {
+		templates, err = templates.ParseFiles(templateFiles...)
 	} else {
 		templates, err = templates.ParseFS(ui.Files, "templates/*.html")
 	}
@@ -102,7 +106,11 @@ func (h *Handlers) Routes() http.Handler {
 	mux := http.NewServeMux()
 
 	staticDir := filepath.Join(h.executableDir, "ui/static")
-	if fileInfo, statErr := os.Stat(staticDir); statErr == nil && fileInfo.IsDir() {
+	staticFiles, err := filepath.Glob(filepath.Join(staticDir, "*"))
+	if err != nil {
+		log.Fatalf("Unable to glob static files: %v", err)
+	}
+	if len(staticFiles) > 0 {
 		mux.Handle("GET /static/", http.StripPrefix("/static", http.FileServer(http.Dir(staticDir))))
 	} else {
 		mux.Handle("GET /static/", http.FileServerFS(ui.Files))

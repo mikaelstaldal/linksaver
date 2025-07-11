@@ -35,7 +35,7 @@ and store screenshots in `data/screenshots`.
 
 1. Build the standalone executable
    ```bash
-   go build -v ./cmd/linksaver/
+   go build -tags netgo -v ./cmd/linksaver/
    ```
 2. Run it without authentication, listing on localhost only:
    ```bash
@@ -49,6 +49,9 @@ Note: This is only secure if you also use https.
 
 The application will store data in the current directory, use `./linksaver.sqlite` as the database file.
 
+You can use the `apparmor-profile` file as a template for an Apparmor profile, you need to substitute 
+`${PATH_TO_EXECUTABLE}` and `${PATH_TO_DATA}` with absolute paths. 
+This has only been tested on Ubuntu and Debian Linux.
 
 ## Web Interface
 
@@ -78,6 +81,7 @@ From the web interface, you can:
 ├── Dockerfile              # Docker configuration
 ├── run.sh                  # Start script for Docker image
 ├── go.mod                  # Go module definition
+├── apparmor-profile        # Apparmor profile template
 └── README.md               # This file
 ```
 

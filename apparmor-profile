@@ -1,0 +1,21 @@
+#include <tunables/global>
+
+profile linksaver ${PATH_TO_EXECUTABLE}/linksaver {
+    #include <abstractions/base>
+    #include <abstractions/consoles>
+
+    /sys/kernel/mm/transparent_hugepage/hpage_pmd_size r,
+
+    /etc/** r,
+    @{PROC}/sys/net/** r,
+    /run/systemd/resolve/** r,
+    /run/resolvconf/resolv.conf r,
+    /usr/share/ca-certificates/** r,
+    network,
+
+    signal (receive) set=(int,term,kill),
+
+    ${PATH_TO_EXECUTABLE}/linksaver rm,
+
+    ${PATH_TO_DATA}/linksaver.sqlite* rwk,
+}
