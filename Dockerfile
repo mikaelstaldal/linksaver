@@ -9,6 +9,8 @@ RUN go mod download
 
 # Copy the Go source code
 COPY cmd/ cmd
+COPY empty-efs.go ui/efs.go
+COPY empty/ ui/
 
 # Build the application
 RUN go build -v -o /app/linksaver ./cmd/linksaver

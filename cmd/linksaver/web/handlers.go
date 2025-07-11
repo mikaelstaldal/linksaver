@@ -11,6 +11,7 @@ import (
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
 	"github.com/mikaelstaldal/linksaver/cmd/linksaver/db"
+	"github.com/mikaelstaldal/linksaver/ui"
 	"golang.org/x/net/html"
 	"html/template"
 	"io"
@@ -59,10 +60,20 @@ var client = &http.Client{
 
 // NewHandlers creates a new Handlers
 func NewHandlers(executableDir string, database *db.DB, screenshotsDir string, usernameBcryptHash, passwordBcryptHash []byte) *Handlers {
-	templates := template.Must(template.New("").Funcs(template.FuncMap{"screenshotFilename": screenshotFilename}).
-		ParseGlob(filepath.Join(executableDir, "ui/templates/*.html")))
+	templates := template.New("").Funcs(template.FuncMap{"screenshotFilename": screenshotFilename})
+
+	templatesDir := filepath.Join(executableDir, "ui/templates")
+	var err error
+	if fileInfo, statErr := os.Stat(templatesDir); statErr == nil && fileInfo.IsDir() {
+		templates, err = templates.ParseGlob(filepath.Join(templatesDir, "*.html"))
+	} else {
+		templates, err = templates.ParseFS(ui.Files, "templates/*.html")
+	}
+	if err != nil {
+		log.Fatalf("Unable to read templates: %v", err)
+	}
 	if templates == nil {
-		log.Fatalf("No templates found in %s", filepath.Join(executableDir, "ui/templates/*.html"))
+		log.Fatalf("No templates found")
 	}
 
 	var browserContext context.Context
@@ -90,7 +101,13 @@ func NewHandlers(executableDir string, database *db.DB, screenshotsDir string, u
 func (h *Handlers) Routes() http.Handler {
 	mux := http.NewServeMux()
 
-	mux.Handle("GET /static/", http.StripPrefix("/static", http.FileServer(http.Dir(filepath.Join(h.executableDir, "ui/static")))))
+	staticDir := filepath.Join(h.executableDir, "ui/static")
+	if fileInfo, statErr := os.Stat(staticDir); statErr == nil && fileInfo.IsDir() {
+		mux.Handle("GET /static/", http.StripPrefix("/static", http.FileServer(http.Dir(staticDir))))
+	} else {
+		mux.Handle("GET /static/", http.FileServerFS(ui.Files))
+	}
+
 	if h.browserContext != nil {
 		mux.Handle("GET /screenshots/", http.StripPrefix("/screenshots", http.FileServer(http.Dir(h.screenshotsDir))))
 	}
