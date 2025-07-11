@@ -27,6 +27,7 @@ func main() {
 
 	// Define command line flags
 	port := flag.Int("port", 8080, "port to listen on")
+	addr := flag.String("addr", "", "address to listen on")
 	flag.Parse()
 
 	if *port < 1 || *port > 65535 {
@@ -65,7 +66,7 @@ func main() {
 	h := web.NewHandlers(executableDir, database, screenshotsDir, usernameBcryptHash, passwordBcryptHash)
 
 	// Start server
-	serverAddr := fmt.Sprintf(":%d", *port)
+	serverAddr := fmt.Sprintf("%s:%d", *addr, *port)
 	log.Printf("Starting server on %s", serverAddr)
 	server := http.Server{
 		Addr:         serverAddr,

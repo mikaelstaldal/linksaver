@@ -17,13 +17,13 @@ provides a web interface for organizing your bookmarks.
    ```bash
    docker build -t linksaver .
    ```
-2. Run the container without authentication:
+2. Run the container without authentication, listing on localhost only:
    ```bash
    docker run --mount "type=bind,src=$(pwd)/data,dst=/data" --cap-drop ALL --security-opt no-new-privileges -p 127.0.0.1:8080:8080 linksaver
    ```
-3. Run the container with HTTP basic authentication:
+3. Run the container with HTTP basic authentication, listing externally:
    ```bash
-   docker run --mount "type=bind,src=$(pwd)/data,dst=/data" --cap-drop ALL --security-opt no-new-privileges -p 127.0.0.1:8080:8080 -e BASIC_AUTH=$(htpasswd -nBC 12 my_username) linksaver
+   docker run --mount "type=bind,src=$(pwd)/data,dst=/data" --cap-drop ALL --security-opt no-new-privileges -p 8080:8080 -e BASIC_AUTH=$(htpasswd -nBC 12 my_username) linksaver
    ```
 Note: This is only secure if you also use https.   
 
@@ -37,11 +37,11 @@ and store screenshots in `data/screenshots`.
    ```bash
    go build -v ./cmd/linksaver/
    ```
-2. Run it without authentication:
+2. Run it without authentication, listing on localhost only:
    ```bash
-   ./linksaver -port 8080
+   ./linksaver -port 8080 -addr 127.0.0.1
    ```  
-3. Run it with HTTP basic authentication:
+3. Run it with HTTP basic authentication, listing externally:
    ```bash
    BASIC_AUTH=$(htpasswd -nBC 12 my_username) ./linksaver -port 8080
    ```  
