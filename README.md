@@ -1,7 +1,7 @@
 # Link Saver
 
 A simple and efficient web application for saving and managing your favorite links. 
-Link Saver automatically extracts page title description and screenshots from URLs and 
+Link Saver automatically extracts page title, description and optionally screenshots from URLs and 
 provides a web interface for organizing your bookmarks.
 
 ## Features
@@ -11,35 +11,46 @@ provides a web interface for organizing your bookmarks.
 - **Docker Support**: Easy deployment with Docker containers
 - **HTTP basic auth**: Protect the application with username and password
 
-## Prerequisites
+## Run with Docker (with screenshot support)
 
-- Go 1.24 or later
-- Docker
-
-## Installation
-
-1. Build the Docker image:
+1. Build the image:
    ```bash
    docker build -t linksaver .
    ```
-
 2. Run the container without authentication:
    ```bash
    docker run --mount "type=bind,src=$(pwd)/data,dst=/data" --cap-drop ALL --security-opt no-new-privileges -p 127.0.0.1:8080:8080 linksaver
    ```
-
 3. Run the container with HTTP basic authentication:
    ```bash
    docker run --mount "type=bind,src=$(pwd)/data,dst=/data" --cap-drop ALL --security-opt no-new-privileges -p 127.0.0.1:8080:8080 -e BASIC_AUTH=$(htpasswd -nBC 12 my_username) linksaver
    ```
 Note: This is only secure if you also use https.   
 
-## Usage
-
-The application will start on port 8080, use `data/linksaver.sqlite` as the database file
+The application will store data in the directory mounted at `/data`, use `data/linksaver.sqlite` as the database file 
 and store screenshots in `data/screenshots`. 
 
-### Web Interface
+
+## Run without Docker (without screenshot support)
+
+1. Build the standalone executable
+   ```bash
+   go build -v ./cmd/linksaver/
+   ```
+2. Run it without authentication:
+   ```bash
+   ./linksaver -port 8080
+   ```  
+3. Run it with HTTP basic authentication:
+   ```bash
+   BASIC_AUTH=$(htpasswd -nBC 12 my_username) ./linksaver -port 8080
+   ```  
+Note: This is only secure if you also use https.   
+
+The application will store data in the current directory, use `./linksaver.sqlite` as the database file.
+
+
+## Web Interface
 
 Once the application is running, open your web browser and navigate to:
 - `http://localhost:8080` (or your configured port)
@@ -82,12 +93,14 @@ go test ./...
 The application provides the following HTTP endpoints:
 
 - `GET /` - Display all saved links
+- `GET /?s=term` - Search for links
 - `POST /` - Add a new link
 - `GET /{id}` - Get a specific link
 - `DELETE /{id}` - Delete a specific link
 
 ## Dependencies
 
+- **Go 1.24**
 - **modernc.org/sqlite**: Pure Go SQLite driver
 - **Bootstrap**: CSS framework for responsive design
 - **HTMX**: Dynamic HTML updates without JavaScript
