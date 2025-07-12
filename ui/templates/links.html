@@ -1,7 +1,7 @@
 {{define "links"}}
 {{if .Search}}
     <h2 class="mb-3 text-secondary">Search results for "{{.Search}}"
-        <button type="button" class="btn btn-secondary" hx-get="/" hx-target="#links">Clear</button>
+        <button type="button" class="btn btn-secondary" hx-get="." hx-target="#links">Clear</button>
     </h2>
 {{else}}
     <h2 class="mb-3 text-secondary">Saved Links</h2>
