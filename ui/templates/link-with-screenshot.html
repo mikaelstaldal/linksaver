@@ -5,17 +5,16 @@
                class="text-decoration-none d-inline-block text-truncate w-100"
                title="{{or .Description .Title}}">{{.Title}}</a></h5>
 
+        <div><a href="{{.URL}}" target="_blank"
+                class="text-muted small text-decoration-none d-inline-block text-truncate w-100"
+                title="{{.URL}}">{{.URL}}</a>
+        </div>
         <div>
-            <div><a href="{{.URL}}" target="_blank"
-                    class="text-muted small text-decoration-none d-inline-block text-truncate w-100"
-                    title="{{.URL}}">{{.URL}}</a>
-            </div>
-            <div>
-                <button class="btn btn-danger btn-sm"
-                        hx-delete="./{{.ID}}"
-                        hx-swap="delete swap:1s"
-                        hx-target="closest div.links-grid-item"
-                        _="
+            <button class="btn btn-danger btn-sm"
+                    hx-delete="./{{.ID}}"
+                    hx-swap="delete swap:1s"
+                    hx-target="closest div.links-grid-item"
+                    _="
                                              on htmx:afterRequest
                                              if event.detail.failed then
                                                put event.detail.xhr.responseText into #error
@@ -25,10 +24,9 @@
                                                hide #error
                                              end
                                            "
-                >Delete
-                </button>
-                <span class="text-muted small text-nowrap">{{.AddedAt.Format "2006-01-02 15:04:05 MST"}}</span>
-            </div>
+            >Delete
+            </button>
+            <span class="text-muted small text-nowrap">{{.AddedAt.Format "2006-01-02 15:04:05 MST"}}</span>
         </div>
     </div>
     <div>
