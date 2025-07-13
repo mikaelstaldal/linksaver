@@ -7,7 +7,7 @@
     <h2 class="mb-3 text-secondary">Saved Links</h2>
 {{end}}
 {{if .Links}}
-    <div class="links-grid rounded p-4">
+    <div class="links-grid">
         {{if .ShowScreenshots}}
             {{range .Links}}
                 {{template "link-with-screenshot" .}}

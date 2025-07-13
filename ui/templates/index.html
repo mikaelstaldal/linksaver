@@ -6,7 +6,7 @@
     <title>Link Saver</title>
     <link href="./static/bootstrap.5.3.7.min.css" rel="stylesheet"
           integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr">
-    <link href="./static/style.1.css" rel="stylesheet">
+    <link href="./static/style.2.css" rel="stylesheet">
     <script src="./static/htmx.2.0.6.min.js"
             integrity="sha384-Akqfrbj/HpNVo8k11SXBb6TlBWmXXlYQrCSqEWmyKJe+hDm3Z/B2WVG4smwBkRVm"></script>
     <script src="./static/hyperscript.0.9.14.min.js"
@@ -14,12 +14,12 @@
     <meta name="htmx-config" content='{"includeIndicatorStyles":false}'>
 </head>
 <body>
-<div class="container mt-4 mb-4">
+<div class="ms-4 me-4 mt-4 mb-4">
     <h2 class="text-secondary">Link Saver</h2>
 
     <div class="alert alert-danger d-none" role="alert" id="error"></div>
 
-    <div class="mb-4">
+    <div class="form-grid mb-2">
         <form hx-post="." hx-target="#links" hx-disabled-elt="find button" _="
                           on htmx:afterRequest
                             if the event's detail.failed then
@@ -40,33 +40,26 @@
                             requestSubmit() on me
                             halt the event
                         ">
-            <div class="row g-2 align-items-end">
-                <div class="col-auto">
-                    <label for="url" class="form-label">URL:</label>
-                </div>
-                <div class="col">
-                    <input type="url" id="url" name="url" class="form-control" required
-                           placeholder="https://example.com">
-                </div>
-                <div class="col-auto">
-                    <button type="submit" class="btn btn-primary">Save Link</button>
-                </div>
+            <div class="d-flex flex-column justify-content-center">
+                <label for="url">URL:</label>
+            </div>
+            <div>
+                <input type="url" id="url" name="url" class="form-control" required
+                       placeholder="https://example.com">
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary text-nowrap">Save Link</button>
             </div>
         </form>
-    </div>
-
-    <div class="mb-4">
         <form hx-get="." hx-target="#links">
-            <div class="row g-2 align-items-end">
-                <div class="col-auto">
-                    <label for="s" class="form-label">Search:</label>
-                </div>
-                <div class="col">
-                    <input type="text" id="s" name="s" class="form-control" required>
-                </div>
-                <div class="col-auto">
-                    <button type="submit" class="btn btn-secondary">Search</button>
-                </div>
+            <div class="d-flex flex-column justify-content-center">
+                <label for="s">Search:</label>
+            </div>
+            <div>
+                <input type="text" id="s" name="s" class="form-control" required>
+            </div>
+            <div>
+                <button type="submit" class="btn btn-secondary text-nowrap">Search</button>
             </div>
         </form>
     </div>
