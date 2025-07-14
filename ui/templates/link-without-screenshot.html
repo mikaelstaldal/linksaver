@@ -1,19 +1,54 @@
 {{define "link-without-screenshot"}}
-<div class="links-grid-item links-grid-header list-group-item border rounded shadow-sm p-2 d-flex flex-column">
+<div class="link-item link-header list-group-item border rounded shadow-sm p-2 d-flex flex-column">
 
-        <h5><a href="{{.URL}}" target="_blank"
+        <h5 class="link-title"><a href="{{.URL}}" target="_blank"
                class="text-decoration-none d-inline-block text-truncate w-100"
                title="{{.Title}}">{{.Title}}</a></h5>
+        <div class="link-title-edit d-none">
+            <div class="d-flex">
+                <form hx-put="./{{.ID}}" hx-swap="outerHTML" hx-target="closest .link-item"
+                      hx-disabled-elt="find button"
+                      _="
+                   on htmx:afterRequest
+                   if event.detail.failed then
+                     put event.detail.xhr.responseText into #error
+                     show #error
+                   else
+                     put '' into #error
+                     hide #error
+                   end
+                 ">
+                    <input type="text" name="title" value="{{.Title}}" class="form-control mb-1" required>
+                    <button class="btn btn-sm" type="submit" title="Save">&#x2714;</button>
+                    <button class="btn btn-sm" type="reset" title="Cancel"
+                            _="
+                         on click
+                         add .d-none to the closest <.link-title-edit />
+                         remove .d-none from <.link-title /> in the closest <.link-item />
+                       "
+                    >&#x274C;
+                    </button>
+                </form>
+            </div>
+        </div>
         <p>{{.Description}}</p>
         <div class="mt-auto"><a href="{{.URL}}" target="_blank"
                 class="text-muted small text-decoration-none d-inline-block text-truncate w-100"
                 title="{{.URL}}">{{.URL}}</a>
         </div>
         <div>
+            <button class="btn btn-light btn-sm"
+                    _="
+                     on click
+                     add .d-none to <.link-title /> in the closest <.link-item />
+                     remove .d-none from <.link-title-edit /> in the closest <.link-item />
+                   "
+            >Edit
+            </button>
             <button class="btn btn-danger btn-sm"
                     hx-delete="./{{.ID}}"
                     hx-swap="delete swap:1s"
-                    hx-target="closest div.links-grid-item"
+                    hx-target="closest .link-item"
                     _="
                                              on htmx:afterRequest
                                              if event.detail.failed then

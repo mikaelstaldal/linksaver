@@ -194,3 +194,18 @@ func (db *DB) DeleteLink(id int64) error {
 	}
 	return nil
 }
+
+func (db *DB) UpdateLink(id int64, title string) error {
+	result, err := db.Exec("UPDATE links SET title = ? WHERE id = ?", title, id)
+	if err != nil {
+		return err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return ErrNotFound
+	}
+	return nil
+}

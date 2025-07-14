@@ -123,6 +123,7 @@ func (h *Handlers) Routes() http.Handler {
 	mux.HandleFunc("GET /{$}", h.ListLinks)
 	mux.HandleFunc("POST /{$}", h.AddLink)
 	mux.HandleFunc("GET /{id}", h.GetLink)
+	mux.HandleFunc("PUT /{id}", h.EditLink)
 	mux.HandleFunc("DELETE /{id}", h.DeleteLink)
 
 	if h.usernameBcryptHash != nil && h.passwordBcryptHash != nil {
@@ -420,6 +421,53 @@ func (h *Handlers) GetLink(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		sendError(w, fmt.Sprintf("Invalid ID: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	dbLink, err := h.database.GetLink(id)
+	if err != nil {
+		if errors.Is(err, db.ErrNotFound) {
+			sendError(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+		} else {
+			sendError(w, fmt.Sprintf("Failed to get link: %v\n", err), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	if h.browserContext != nil {
+		h.render(w, "link-with-screenshot", dbLink, http.StatusOK)
+	} else {
+		h.render(w, "link-without-screenshot", dbLink, http.StatusOK)
+	}
+}
+
+// EditLink handles the request to edit a link
+func (h *Handlers) EditLink(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		sendError(w, fmt.Sprintf("Invalid ID: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		sendError(w, fmt.Sprintf("Failed to parse form: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	title := r.PostForm.Get("title")
+	if title == "" {
+		sendError(w, "title is required", http.StatusBadRequest)
+		return
+	}
+
+	err = h.database.UpdateLink(id, title)
+	if err != nil {
+		if errors.Is(err, db.ErrNotFound) {
+			sendError(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+		} else {
+			sendError(w, fmt.Sprintf("Failed edit link: %v\n", err), http.StatusInternalServerError)
+		}
 		return
 	}
 

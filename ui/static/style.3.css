@@ -20,14 +20,6 @@ form {
     grid-template-columns: minmax(0, 1fr);
 }
 
-.links-grid-item {
-    background-color: var(--bs-secondary-bg);
-}
-
-.links-grid-header {
-    padding: 0.5rem;
-}
-
 /* Two columns for medium screens (768px and up) */
 @media (min-width: 768px) {
     .links-grid {
@@ -47,4 +39,12 @@ form {
     .links-grid {
         grid-template-columns: repeat(4, minmax(0, 1fr));
     }
+}
+
+.link-item {
+    background-color: var(--bs-secondary-bg);
+}
+
+.link-header {
+    padding: 0.5rem;
 }

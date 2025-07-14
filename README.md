@@ -100,6 +100,7 @@ The application provides the following HTTP endpoints:
 - `GET /?s=term` - Search for links
 - `POST /` - Add a new link
 - `GET /{id}` - Get a specific link
+- `PUT /{id}` - Edit a specific link
 - `DELETE /{id}` - Delete a specific link
 
 ## Dependencies
