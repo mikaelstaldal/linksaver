@@ -12,10 +12,10 @@
                    on htmx:afterRequest
                    if event.detail.failed then
                      put event.detail.xhr.responseText into #error
-                     show #error
+                     remove .d-none from #error
                    else
                      put '' into #error
-                     hide #error
+                     add .d-none to #error
                    end
                  ">
                     <input type="text" name="title" value="{{.Title}}" class="form-control mb-1" required>
@@ -53,10 +53,10 @@
                                              on htmx:afterRequest
                                              if event.detail.failed then
                                                put event.detail.xhr.responseText into #error
-                                               show #error
+                                               remove .d-none from #error
                                              else
                                                put '' into #error
-                                               hide #error
+                                               add .d-none to #error
                                              end
                                            "
             >Delete
