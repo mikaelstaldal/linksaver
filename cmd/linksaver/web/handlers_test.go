@@ -249,6 +249,8 @@ func TestHandlers(t *testing.T) {
 }
 
 func Test_extractTitleAndDescriptionAndBodyFromURL(t *testing.T) {
+	handlers := NewHandlers("../../..", nil, "", nil, nil)
+
 	tests := []struct {
 		name         string
 		contentType  string
@@ -313,7 +315,7 @@ func Test_extractTitleAndDescriptionAndBodyFromURL(t *testing.T) {
 			}))
 			defer server.Close()
 
-			title, description, body, err := extractTitleAndDescriptionAndBodyFromURL(server.URL)
+			title, description, body, err := handlers.extractTitleAndDescriptionAndBodyFromURL(server.URL)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("extractTitleAndDescriptionAndBodyFromURL() error = %v, wantErr %v", err, tt.wantErr)
 				return

@@ -37,25 +37,10 @@ type Handlers struct {
 	database           *db.DB
 	screenshotsDir     string
 	templates          *template.Template
+	client             *http.Client
 	browserContext     context.Context
 	usernameBcryptHash []byte
 	passwordBcryptHash []byte
-}
-
-// Create an HTTP client with improved configuration to handle various websites
-var client = &http.Client{
-	Timeout: 10 * time.Second,
-	Transport: &http.Transport{
-		// Force HTTP/1.1 to avoid HTTP/2 issues with some websites
-		ForceAttemptHTTP2: false,
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: false,
-		},
-		// Set reasonable timeouts
-		IdleConnTimeout:       30 * time.Second,
-		TLSHandshakeTimeout:   5 * time.Second,
-		ResponseHeaderTimeout: 5 * time.Second,
-	},
 }
 
 // NewHandlers creates a new Handlers
@@ -80,6 +65,22 @@ func NewHandlers(executableDir string, database *db.DB, screenshotsDir string, u
 		log.Fatalf("No templates found")
 	}
 
+	// Create an HTTP client with improved configuration to handle various websites
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+		Transport: &http.Transport{
+			// Force HTTP/1.1 to avoid HTTP/2 issues with some websites
+			ForceAttemptHTTP2: false,
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: false,
+			},
+			// Set reasonable timeouts
+			IdleConnTimeout:       30 * time.Second,
+			TLSHandshakeTimeout:   5 * time.Second,
+			ResponseHeaderTimeout: 5 * time.Second,
+		},
+	}
+
 	var browserContext context.Context
 	dockerURL := os.Getenv("CHROMEDP")
 	if dockerURL != "" {
@@ -96,6 +97,7 @@ func NewHandlers(executableDir string, database *db.DB, screenshotsDir string, u
 		database:           database,
 		screenshotsDir:     screenshotsDir,
 		templates:          templates,
+		client:             client,
 		browserContext:     browserContext,
 		usernameBcryptHash: usernameBcryptHash,
 		passwordBcryptHash: passwordBcryptHash,
@@ -178,7 +180,7 @@ func (h *Handlers) AddLink(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-		title, description, body, err = extractTitleAndDescriptionAndBodyFromURL(urlToSave)
+		title, description, body, err = h.extractTitleAndDescriptionAndBodyFromURL(urlToSave)
 		if err != nil {
 			sendError(w, fmt.Sprintf("Failed to load URL: %v", err), http.StatusBadRequest)
 			return
@@ -216,7 +218,7 @@ func isPrivateOrLocalhost(host string) bool {
 }
 
 // extractTitleAndDescriptionAndBodyFromURL fetches the URL and extracts the page title from HTML
-func extractTitleAndDescriptionAndBodyFromURL(url string) (string, string, []byte, error) {
+func (h *Handlers) extractTitleAndDescriptionAndBodyFromURL(url string) (string, string, []byte, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return "", "", nil, fmt.Errorf("failed to create request: %w", err)
@@ -228,7 +230,7 @@ func extractTitleAndDescriptionAndBodyFromURL(url string) (string, string, []byt
 	req.Header.Set("Connection", "keep-alive")
 	req.Header.Set("Upgrade-Insecure-Requests", "1")
 
-	resp, err := client.Do(req)
+	resp, err := h.client.Do(req)
 	if err != nil {
 		return "", "", nil, fmt.Errorf("failed to fetch URL: %w", err)
 	}
