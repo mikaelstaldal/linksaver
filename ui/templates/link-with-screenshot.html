@@ -6,7 +6,7 @@
                title="{{or .Description .Title}}">{{.Title}}</a></h5>
         <div class="link-title-edit d-none">
             <div class="d-flex">
-                <form hx-put="./{{.ID}}" hx-swap="outerHTML" hx-target="closest .link-item"
+                <form hx-patch="./{{.ID}}" hx-swap="outerHTML" hx-target="closest .link-item"
                       hx-disabled-elt="find button"
                       _="
                    on htmx:afterRequest

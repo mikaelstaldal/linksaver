@@ -123,7 +123,7 @@ func (h *Handlers) Routes() http.Handler {
 	mux.HandleFunc("GET /{$}", h.ListLinks)
 	mux.HandleFunc("POST /{$}", h.AddLink)
 	mux.HandleFunc("GET /{id}", h.GetLink)
-	mux.HandleFunc("PUT /{id}", h.EditLink)
+	mux.HandleFunc("PATCH /{id}", h.EditLink)
 	mux.HandleFunc("DELETE /{id}", h.DeleteLink)
 
 	if h.usernameBcryptHash != nil && h.passwordBcryptHash != nil {
