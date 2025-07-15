@@ -232,7 +232,7 @@ func extractTitleAndDescriptionAndBodyFromURL(url string) (string, string, []byt
 	if err != nil {
 		return "", "", nil, fmt.Errorf("failed to fetch URL: %w", err)
 	}
-	body, err := io.ReadAll(io.LimitReader(resp.Body, maxBodyLength))
+	responseBody, err := io.ReadAll(io.LimitReader(resp.Body, maxBodyLength))
 	_, _ = io.Copy(io.Discard, resp.Body)
 	_ = resp.Body.Close()
 	if err != nil {
@@ -248,7 +248,7 @@ func extractTitleAndDescriptionAndBodyFromURL(url string) (string, string, []byt
 		return "", "", nil, fmt.Errorf("content type is not HTML: %s", contentType)
 	}
 
-	doc, err := html.Parse(bytes.NewReader(body))
+	doc, err := html.Parse(bytes.NewReader(responseBody))
 	if err != nil {
 		return "", "", nil, fmt.Errorf("failed to parse HTML: %w", err)
 	}
@@ -268,7 +268,12 @@ func extractTitleAndDescriptionAndBodyFromURL(url string) (string, string, []byt
 		description = description[:maxDescriptionLength] + "..."
 	}
 
-	return title, description, body, nil
+	bodyIndex := bytes.Index(responseBody, []byte("<body>"))
+	if bodyIndex > 0 {
+		responseBody = responseBody[bodyIndex:]
+	}
+
+	return title, description, responseBody, nil
 }
 
 // extractTitle recursively searches for the "title" element in the HTML tree
