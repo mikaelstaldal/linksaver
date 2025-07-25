@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -18,7 +19,6 @@ func TestHandlers(t *testing.T) {
 	// Use a temporary database file for testing
 	dbFile := "test_handlers.database"
 
-	testUrl := "https://www.some-test-url.com"
 	testTitle := "Test Title"
 	testDescription := "Test Description"
 	testUsername := "test username"
@@ -34,16 +34,10 @@ func TestHandlers(t *testing.T) {
 		_ = os.Remove(dbFile)
 	})
 
-	linkId, err := database.AddLink(testUrl, testTitle, testDescription, nil)
-	if err != nil {
-		t.Fatalf("Failed to add link: %v", err)
-	}
-
 	usernameBcryptHash, err := bcrypt.GenerateFromPassword([]byte(testUsername), bcrypt.MinCost)
 	if err != nil {
 		t.Fatalf("Failed to hash username: %v", err)
 	}
-	t.Logf("Username: %v", string(usernameBcryptHash))
 
 	passwordBcryptHash, err := bcrypt.GenerateFromPassword([]byte(testPassword), bcrypt.MinCost)
 	if err != nil {
@@ -51,6 +45,68 @@ func TestHandlers(t *testing.T) {
 	}
 
 	handler := NewHandlers("../../..", database, "", usernameBcryptHash, passwordBcryptHash).Routes()
+
+	// Create a mock HTTP server to simulate a valid URL
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(fmt.Sprintf("<html><head><title>%s</title><meta name='description' content='%s'></head><body>Some body</body></html>", testTitle, testDescription)))
+	}))
+	defer mockServer.Close()
+
+	var linkId int64
+
+	t.Run("add link success", func(t *testing.T) {
+		req := httptest.NewRequest("POST", "/", strings.NewReader("url="+mockServer.URL))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.SetBasicAuth(testUsername, testPassword)
+		response, body := testRequest(t, handler, req)
+
+		if status := response.StatusCode; status != http.StatusCreated {
+			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusCreated)
+		}
+
+		locationHeader := response.Header.Get("Location")
+		if linkIdString, found := strings.CutPrefix(locationHeader, "/"); !found {
+			t.Errorf("Response Location header doesn't has correct format: '%s'", locationHeader)
+		} else {
+			if linkId, err = strconv.ParseInt(linkIdString, 10, 64); err != nil {
+				t.Errorf("Failed to convert link ID: %v", err)
+			}
+		}
+
+		if !bytes.Contains(body, []byte(mockServer.URL)) {
+			t.Errorf("Response doesn't contain the expected link URL\n%s", string(body))
+		}
+		if !bytes.Contains(body, []byte(testTitle)) {
+			t.Errorf("Response doesn't contain the expected link title\n%s", string(body))
+		}
+		if !bytes.Contains(body, []byte(testDescription)) {
+			t.Errorf("Response doesn't contain the expected link description\n%s", string(body))
+		}
+	})
+
+	t.Run("add link missing url", func(t *testing.T) {
+		req := httptest.NewRequest("POST", "/", strings.NewReader(""))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.SetBasicAuth(testUsername, testPassword)
+		response, _ := testRequest(t, handler, req)
+
+		if status := response.StatusCode; status != http.StatusBadRequest {
+			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusBadRequest)
+		}
+	})
+
+	t.Run("add link invalid url", func(t *testing.T) {
+		req := httptest.NewRequest("POST", "/", strings.NewReader("url=invalid-url"))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.SetBasicAuth(testUsername, testPassword)
+		response, _ := testRequest(t, handler, req)
+
+		if status := response.StatusCode; status != http.StatusBadRequest {
+			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusBadRequest)
+		}
+	})
 
 	t.Run("get all links success", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/", nil)
@@ -61,7 +117,7 @@ func TestHandlers(t *testing.T) {
 			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
 		}
 
-		if !bytes.Contains(body, []byte(testUrl)) {
+		if !bytes.Contains(body, []byte(mockServer.URL)) {
 			t.Errorf("Response doesn't contain the expected link URL\n%s", string(body))
 		}
 		if !bytes.Contains(body, []byte(testTitle)) {
@@ -84,7 +140,7 @@ func TestHandlers(t *testing.T) {
 			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
 		}
 
-		if !bytes.Contains(body, []byte(testUrl)) {
+		if !bytes.Contains(body, []byte(mockServer.URL)) {
 			t.Errorf("Response doesn't contain the expected link URL\n%s", string(body))
 		}
 		if !bytes.Contains(body, []byte(testTitle)) {
@@ -107,7 +163,7 @@ func TestHandlers(t *testing.T) {
 			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
 		}
 
-		if !bytes.Contains(body, []byte(testUrl)) {
+		if !bytes.Contains(body, []byte(mockServer.URL)) {
 			t.Errorf("Response doesn't contain the expected link URL\n%s", string(body))
 		}
 		if !bytes.Contains(body, []byte(testTitle)) {
