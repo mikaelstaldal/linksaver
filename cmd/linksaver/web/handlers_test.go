@@ -2,6 +2,7 @@ package web
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/mikaelstaldal/linksaver/cmd/linksaver/db"
 	"golang.org/x/crypto/bcrypt"
@@ -131,6 +132,38 @@ func TestHandlers(t *testing.T) {
 		}
 	})
 
+	t.Run("get all links as JSON", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/", nil)
+		req.Header.Set("Accept", "application/json")
+		req.SetBasicAuth(testUsername, testPassword)
+		response, body := testRequest(t, handler, req)
+
+		if status := response.StatusCode; status != http.StatusOK {
+			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
+		}
+
+		if contentType := response.Header.Get("Content-Type"); !strings.HasPrefix(contentType, "application/json") {
+			t.Errorf("Wrong Content-Type: %s", contentType)
+		}
+
+		var data []db.Link
+		if err := json.Unmarshal(body, &data); err != nil {
+			t.Errorf("Response doesn't contain the expected JSON\n%s", string(body))
+		}
+		if len(data) != 1 {
+			t.Errorf("Wrong length of JSON response: %d", len(data))
+		}
+		if data[0].URL != mockServer.URL {
+			t.Errorf("Response doesn't contain the expected link URL\n%s", data[0].URL)
+		}
+		if data[0].Title != testTitle {
+			t.Errorf("Response doesn't contain the expected link title\n%s", data[0].Title)
+		}
+		if data[0].Description != testDescription {
+			t.Errorf("Response doesn't contain the expected link description\n%s", data[0].Description)
+		}
+	})
+
 	t.Run("search success", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/?s=test", nil)
 		req.SetBasicAuth(testUsername, testPassword)
@@ -171,6 +204,35 @@ func TestHandlers(t *testing.T) {
 		}
 		if !bytes.Contains(body, []byte(testDescription)) {
 			t.Errorf("Response doesn't contain the expected link description\n%s", string(body))
+		}
+	})
+
+	t.Run("get single link as JSON", func(t *testing.T) {
+		req := httptest.NewRequest("GET", fmt.Sprintf("/%d", linkId), nil)
+		req.Header.Set("Accept", "application/json")
+		req.SetBasicAuth(testUsername, testPassword)
+		response, body := testRequest(t, handler, req)
+
+		if status := response.StatusCode; status != http.StatusOK {
+			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
+		}
+
+		if contentType := response.Header.Get("Content-Type"); !strings.HasPrefix(contentType, "application/json") {
+			t.Errorf("Wrong Content-Type: %s", contentType)
+		}
+
+		var data db.Link
+		if err := json.Unmarshal(body, &data); err != nil {
+			t.Errorf("Response doesn't contain the expected JSON\n%s", string(body))
+		}
+		if data.URL != mockServer.URL {
+			t.Errorf("Response doesn't contain the expected link URL\n%s", data.URL)
+		}
+		if data.Title != testTitle {
+			t.Errorf("Response doesn't contain the expected link title\n%s", data.Title)
+		}
+		if data.Description != testDescription {
+			t.Errorf("Response doesn't contain the expected link description\n%s", data.Description)
 		}
 	})
 

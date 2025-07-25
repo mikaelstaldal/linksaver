@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"crypto/tls"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/chromedp/cdproto/page"
@@ -441,10 +442,14 @@ func (h *Handlers) GetLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if h.browserContext != nil {
-		h.render(w, "link-with-screenshot", dbLink, http.StatusOK)
+	if wantJson(r) {
+		h.renderJson(w, dbLink, http.StatusOK)
 	} else {
-		h.render(w, "link-without-screenshot", dbLink, http.StatusOK)
+		if h.browserContext != nil {
+			h.render(w, "link-with-screenshot", dbLink, http.StatusOK)
+		} else {
+			h.render(w, "link-without-screenshot", dbLink, http.StatusOK)
+		}
 	}
 }
 
@@ -538,22 +543,36 @@ func (h *Handlers) listLinks(w http.ResponseWriter, r *http.Request, status int)
 		}
 	}
 
-	data := struct {
-		Search          string
-		Links           []db.Link
-		ShowScreenshots bool
-	}{
-		Search:          search,
-		Links:           dbLinks,
-		ShowScreenshots: h.browserContext != nil,
-	}
-	var templateName string
-	if r.Header.Get("HX-Request") == "true" {
-		templateName = "links"
+	if wantJson(r) {
+		h.renderJson(w, dbLinks, status)
 	} else {
-		templateName = "index.html"
+		data := struct {
+			Search          string
+			Links           []db.Link
+			ShowScreenshots bool
+		}{
+			Search:          search,
+			Links:           dbLinks,
+			ShowScreenshots: h.browserContext != nil,
+		}
+		var templateName string
+		if r.Header.Get("HX-Request") == "true" {
+			templateName = "links"
+		} else {
+			templateName = "index.html"
+		}
+		h.render(w, templateName, data, status)
 	}
-	h.render(w, templateName, data, status)
+}
+
+func wantJson(r *http.Request) bool {
+	wantJson := false
+	for _, accept := range r.Header.Values("Accept") {
+		if strings.ToLower(accept) == "application/json" {
+			wantJson = true
+		}
+	}
+	return wantJson
 }
 
 func (h *Handlers) render(w http.ResponseWriter, name string, data any, status int) {
@@ -565,6 +584,17 @@ func (h *Handlers) render(w http.ResponseWriter, name string, data any, status i
 	}
 	w.WriteHeader(status)
 	_, _ = buf.WriteTo(w)
+}
+
+func (h *Handlers) renderJson(w http.ResponseWriter, data any, status int) {
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		sendError(w, fmt.Sprintf("Failed to marshal JSON: %v\n", err), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_, _ = w.Write(jsonData)
 }
 
 func sendError(w http.ResponseWriter, errorMessage string, status int) {
