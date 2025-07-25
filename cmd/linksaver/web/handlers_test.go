@@ -55,103 +55,75 @@ func TestHandlers(t *testing.T) {
 	t.Run("get all links success", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/", nil)
 		req.SetBasicAuth(testUsername, testPassword)
-		rr := httptest.NewRecorder()
-		handler.ServeHTTP(rr, req)
-		result := rr.Result()
-		body, err := io.ReadAll(result.Body)
-		if err != nil {
-			t.Fatalf("Failed to read response body: %v", err)
-		}
-		_ = result.Body.Close()
+		response, body := testRequest(t, handler, req)
 
-		if status := result.StatusCode; status != http.StatusOK {
+		if status := response.StatusCode; status != http.StatusOK {
 			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
 		}
 
 		if !bytes.Contains(body, []byte(testUrl)) {
-			t.Errorf("Response doesn't contain the expected link URL\n%s", rr.Body.String())
+			t.Errorf("Response doesn't contain the expected link URL\n%s", string(body))
 		}
 		if !bytes.Contains(body, []byte(testTitle)) {
-			t.Errorf("Response doesn't contain the expected link title\n%s", rr.Body.String())
+			t.Errorf("Response doesn't contain the expected link title\n%s", string(body))
 		}
 		if !bytes.Contains(body, []byte(testDescription)) {
-			t.Errorf("Response doesn't contain the expected link description\n%s", rr.Body.String())
+			t.Errorf("Response doesn't contain the expected link description\n%s", string(body))
 		}
 		if !bytes.Contains(body, []byte(time.Now().Format("2006-01-02 "))) {
-			t.Errorf("Response doesn't contain the expected date\n%s", rr.Body.String())
+			t.Errorf("Response doesn't contain the expected date\n%s", string(body))
 		}
 	})
 
 	t.Run("search success", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/?s=test", nil)
 		req.SetBasicAuth(testUsername, testPassword)
-		rr := httptest.NewRecorder()
-		handler.ServeHTTP(rr, req)
-		result := rr.Result()
-		body, err := io.ReadAll(result.Body)
-		if err != nil {
-			t.Fatalf("Failed to read response body: %v", err)
-		}
-		_ = result.Body.Close()
+		response, body := testRequest(t, handler, req)
 
-		if status := result.StatusCode; status != http.StatusOK {
+		if status := response.StatusCode; status != http.StatusOK {
 			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
 		}
 
 		if !bytes.Contains(body, []byte(testUrl)) {
-			t.Errorf("Response doesn't contain the expected link URL\n%s", rr.Body.String())
+			t.Errorf("Response doesn't contain the expected link URL\n%s", string(body))
 		}
 		if !bytes.Contains(body, []byte(testTitle)) {
-			t.Errorf("Response doesn't contain the expected link title\n%s", rr.Body.String())
+			t.Errorf("Response doesn't contain the expected link title\n%s", string(body))
 		}
 		if !bytes.Contains(body, []byte(testDescription)) {
-			t.Errorf("Response doesn't contain the expected link description\n%s", rr.Body.String())
+			t.Errorf("Response doesn't contain the expected link description\n%s", string(body))
 		}
 		if !bytes.Contains(body, []byte(time.Now().Format("2006-01-02 "))) {
-			t.Errorf("Response doesn't contain the expected date\n%s", rr.Body.String())
+			t.Errorf("Response doesn't contain the expected date\n%s", string(body))
 		}
 	})
 
 	t.Run("get single link success", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/1", nil)
 		req.SetBasicAuth(testUsername, testPassword)
-		rr := httptest.NewRecorder()
-		handler.ServeHTTP(rr, req)
-		result := rr.Result()
-		body, err := io.ReadAll(result.Body)
-		if err != nil {
-			t.Fatalf("Failed to read response body: %v", err)
-		}
-		_ = result.Body.Close()
+		response, body := testRequest(t, handler, req)
 
-		if status := result.StatusCode; status != http.StatusOK {
+		if status := response.StatusCode; status != http.StatusOK {
 			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
 		}
 
 		if !bytes.Contains(body, []byte(testUrl)) {
-			t.Errorf("Response doesn't contain the expected link URL\n%s", rr.Body.String())
+			t.Errorf("Response doesn't contain the expected link URL\n%s", string(body))
 		}
 		if !bytes.Contains(body, []byte(testTitle)) {
-			t.Errorf("Response doesn't contain expected title\n%s", rr.Body.String())
+			t.Errorf("Response doesn't contain expected title\n%s", string(body))
 		}
 		if !bytes.Contains(body, []byte(testDescription)) {
-			t.Errorf("Response doesn't contain the expected link description\n%s", rr.Body.String())
+			t.Errorf("Response doesn't contain the expected link description\n%s", string(body))
 		}
 	})
 
 	t.Run("get single link invalid id", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/invalid", nil)
 		req.SetBasicAuth(testUsername, testPassword)
-		rr := httptest.NewRecorder()
-		handler.ServeHTTP(rr, req)
-		result := rr.Result()
-		_, err := io.Copy(io.Discard, result.Body)
-		if err != nil {
-			t.Fatalf("Failed to read response body: %v", err)
-		}
-		_ = result.Body.Close()
+		response, _ := testRequest(t, handler, req)
 
-		if status := result.StatusCode; status != http.StatusBadRequest {
+		if status := response.StatusCode; status != http.StatusBadRequest {
 			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusBadRequest)
 		}
 	})
@@ -159,16 +131,9 @@ func TestHandlers(t *testing.T) {
 	t.Run("get single link not found", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/999", nil)
 		req.SetBasicAuth(testUsername, testPassword)
-		rr := httptest.NewRecorder()
-		handler.ServeHTTP(rr, req)
-		result := rr.Result()
-		_, err := io.Copy(io.Discard, result.Body)
-		if err != nil {
-			t.Fatalf("Failed to read response body: %v", err)
-		}
-		_ = result.Body.Close()
+		response, _ := testRequest(t, handler, req)
 
-		if status := result.StatusCode; status != http.StatusNotFound {
+		if status := response.StatusCode; status != http.StatusNotFound {
 			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusNotFound)
 		}
 	})
@@ -176,16 +141,9 @@ func TestHandlers(t *testing.T) {
 	t.Run("delete link success", func(t *testing.T) {
 		req := httptest.NewRequest("DELETE", "/1", nil)
 		req.SetBasicAuth(testUsername, testPassword)
-		rr := httptest.NewRecorder()
-		handler.ServeHTTP(rr, req)
-		result := rr.Result()
-		_, err := io.Copy(io.Discard, result.Body)
-		if err != nil {
-			t.Fatalf("Failed to read response body: %v", err)
-		}
-		_ = result.Body.Close()
+		response, _ := testRequest(t, handler, req)
 
-		if status := result.StatusCode; status != http.StatusOK {
+		if status := response.StatusCode; status != http.StatusOK {
 			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
 		}
 
@@ -199,16 +157,9 @@ func TestHandlers(t *testing.T) {
 	t.Run("delete link invalid id", func(t *testing.T) {
 		req := httptest.NewRequest("DELETE", "/invalid", nil)
 		req.SetBasicAuth(testUsername, testPassword)
-		rr := httptest.NewRecorder()
-		handler.ServeHTTP(rr, req)
-		result := rr.Result()
-		_, err := io.Copy(io.Discard, result.Body)
-		if err != nil {
-			t.Fatalf("Failed to read response body: %v", err)
-		}
-		_ = result.Body.Close()
+		response, _ := testRequest(t, handler, req)
 
-		if status := result.StatusCode; status != http.StatusBadRequest {
+		if status := response.StatusCode; status != http.StatusBadRequest {
 			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusBadRequest)
 		}
 	})
@@ -216,36 +167,34 @@ func TestHandlers(t *testing.T) {
 	t.Run("delete link not found", func(t *testing.T) {
 		req := httptest.NewRequest("DELETE", "/999", nil)
 		req.SetBasicAuth(testUsername, testPassword)
-		rr := httptest.NewRecorder()
-		handler.ServeHTTP(rr, req)
-		result := rr.Result()
-		_, err := io.Copy(io.Discard, result.Body)
-		if err != nil {
-			t.Fatalf("Failed to read response body: %v", err)
-		}
-		_ = result.Body.Close()
+		response, _ := testRequest(t, handler, req)
 
-		if status := result.StatusCode; status != http.StatusNotFound {
+		if status := response.StatusCode; status != http.StatusNotFound {
 			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusNotFound)
 		}
 	})
 
 	t.Run("unauthorized", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/", nil)
-		rr := httptest.NewRecorder()
-		handler.ServeHTTP(rr, req)
-		result := rr.Result()
-		_, err := io.Copy(io.Discard, result.Body)
-		if err != nil {
-			t.Fatalf("Failed to read response body: %v", err)
-		}
-		_ = result.Body.Close()
+		response, _ := testRequest(t, handler, req)
 
-		if status := result.StatusCode; status != http.StatusUnauthorized {
+		if status := response.StatusCode; status != http.StatusUnauthorized {
 			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusUnauthorized)
 		}
 	})
 
+}
+
+func testRequest(t *testing.T, handler http.Handler, req *http.Request) (*http.Response, []byte) {
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	result := rr.Result()
+	body, err := io.ReadAll(result.Body)
+	if err != nil {
+		t.Fatalf("Failed to read response body: %v", err)
+	}
+	_ = result.Body.Close()
+	return result, body
 }
 
 func Test_extractTitleAndDescriptionAndBodyFromURL(t *testing.T) {
