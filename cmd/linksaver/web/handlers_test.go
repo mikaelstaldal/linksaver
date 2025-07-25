@@ -2,6 +2,7 @@ package web
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/mikaelstaldal/linksaver/cmd/linksaver/db"
 	"golang.org/x/crypto/bcrypt"
 	"io"
@@ -28,16 +29,15 @@ func TestHandlers(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to initialize database: %v", err)
 	}
-
-	_, err = database.AddLink(testUrl, testTitle, testDescription, nil)
-	if err != nil {
-		t.Fatalf("Failed to add link: %v", err)
-	}
-
 	t.Cleanup(func() {
 		_ = database.Close()
 		_ = os.Remove(dbFile)
 	})
+
+	linkId, err := database.AddLink(testUrl, testTitle, testDescription, nil)
+	if err != nil {
+		t.Fatalf("Failed to add link: %v", err)
+	}
 
 	usernameBcryptHash, err := bcrypt.GenerateFromPassword([]byte(testUsername), bcrypt.MinCost)
 	if err != nil {
@@ -99,7 +99,7 @@ func TestHandlers(t *testing.T) {
 	})
 
 	t.Run("get single link success", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/1", nil)
+		req := httptest.NewRequest("GET", fmt.Sprintf("/%d", linkId), nil)
 		req.SetBasicAuth(testUsername, testPassword)
 		response, body := testRequest(t, handler, req)
 
@@ -138,8 +138,65 @@ func TestHandlers(t *testing.T) {
 		}
 	})
 
+	t.Run("patch link success", func(t *testing.T) {
+		req := httptest.NewRequest("PATCH", fmt.Sprintf("/%d", linkId), strings.NewReader("title=Updated Title"))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.SetBasicAuth(testUsername, testPassword)
+		response, body := testRequest(t, handler, req)
+
+		if status := response.StatusCode; status != http.StatusOK {
+			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
+		}
+
+		if !bytes.Contains(body, []byte("Updated Title")) {
+			t.Errorf("Response doesn't contain the updated title\n%s", string(body))
+		}
+
+		// Verify the link was actually updated in the database
+		updatedLink, err := database.GetLink(linkId)
+		if err != nil {
+			t.Fatalf("Failed to get updated link: %v", err)
+		}
+		if updatedLink.Title != "Updated Title" {
+			t.Errorf("Link title was not updated in database: got %v want %v", updatedLink.Title, "Updated Title")
+		}
+	})
+
+	t.Run("patch link invalid id", func(t *testing.T) {
+		req := httptest.NewRequest("PATCH", "/invalid", strings.NewReader("title=Updated Title"))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.SetBasicAuth(testUsername, testPassword)
+		response, _ := testRequest(t, handler, req)
+
+		if status := response.StatusCode; status != http.StatusBadRequest {
+			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusBadRequest)
+		}
+	})
+
+	t.Run("patch link not found", func(t *testing.T) {
+		req := httptest.NewRequest("PATCH", "/999", strings.NewReader("title=Updated Title"))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.SetBasicAuth(testUsername, testPassword)
+		response, _ := testRequest(t, handler, req)
+
+		if status := response.StatusCode; status != http.StatusNotFound {
+			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusNotFound)
+		}
+	})
+
+	t.Run("patch link missing title", func(t *testing.T) {
+		req := httptest.NewRequest("PATCH", fmt.Sprintf("/%d", linkId), strings.NewReader(""))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.SetBasicAuth(testUsername, testPassword)
+		response, _ := testRequest(t, handler, req)
+
+		if status := response.StatusCode; status != http.StatusBadRequest {
+			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusBadRequest)
+		}
+	})
+
 	t.Run("delete link success", func(t *testing.T) {
-		req := httptest.NewRequest("DELETE", "/1", nil)
+		req := httptest.NewRequest("DELETE", fmt.Sprintf("/%d", linkId), nil)
 		req.SetBasicAuth(testUsername, testPassword)
 		response, _ := testRequest(t, handler, req)
 
@@ -182,7 +239,6 @@ func TestHandlers(t *testing.T) {
 			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusUnauthorized)
 		}
 	})
-
 }
 
 func testRequest(t *testing.T, handler http.Handler, req *http.Request) (*http.Response, []byte) {
