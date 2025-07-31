@@ -20,26 +20,31 @@
     <div class="alert alert-danger d-none" role="alert" id="error"></div>
 
     <div class="form-grid mb-2">
-        <form hx-post="." hx-target="#links" hx-disabled-elt="find button" _="
-                          on htmx:afterRequest
-                            if the event's detail.failed then
-                              put the event's detail.xhr.responseText into #error
-                              remove .d-none from #error
-                            else
-                              put '' into #error
-                              add .d-none to #error
-                            end
-                          on dragenter
-                            halt the event
-                          on dragover
-                            if the types of the event's dataTransfer contains 'text/uri-list'
-                              halt the event
-                            end
-                          on drop
-                            put the event's dataTransfer.getData('URL') into #url's value
-                            requestSubmit() on me
-                            halt the event
-                        ">
+        <form hx-post="."
+              hx-target="#links"
+              hx-disabled-elt="find button"
+              hx-push-url="true"
+              _="
+                  on htmx:afterRequest
+                    if the event's detail.failed then
+                      put the event's detail.xhr.responseText into #error
+                      remove .d-none from #error
+                    else
+                      put '' into the value of #s
+                      put '' into #error
+                      add .d-none to #error
+                    end
+                  on dragenter
+                    halt the event
+                  on dragover
+                    if the types of the event's dataTransfer contains 'text/uri-list'
+                      halt the event
+                    end
+                  on drop
+                    put the event's dataTransfer.getData('URL') into #url's value
+                    requestSubmit() on me
+                    halt the event
+                ">
             <div class="d-flex flex-column justify-content-center">
                 <label for="url">URL:</label>
             </div>
@@ -51,7 +56,9 @@
                 <button type="submit" class="btn btn-primary text-nowrap">Save Link</button>
             </div>
         </form>
-        <form hx-get="." hx-target="#links">
+        <form hx-get="."
+              hx-target="#links"
+              hx-push-url="true">
             <div class="d-flex flex-column justify-content-center">
                 <label for="s">Search:</label>
             </div>
