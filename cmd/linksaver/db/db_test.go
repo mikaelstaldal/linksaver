@@ -31,7 +31,7 @@ func TestDB(t *testing.T) {
 		t.Fatalf("Failed to add link: %v", err)
 	}
 	if id <= 0 {
-		t.Fatalf("Expected positive ID, got %d", id)
+		t.Fatalf("Got %d, expected positive ID", id)
 	}
 
 	// Test adding another link
@@ -44,7 +44,7 @@ func TestDB(t *testing.T) {
 		t.Fatalf("Failed to add link 2: %v", err)
 	}
 	if id2 <= 0 {
-		t.Fatalf("Expected positive ID, got %d", id)
+		t.Fatalf("Got %d, expected positive ID", id)
 	}
 	if id2 == id {
 		t.Fatalf("Expected different id")
@@ -62,28 +62,28 @@ func TestDB(t *testing.T) {
 		t.Fatalf("Failed to get links: %v", err)
 	}
 	if len(links) != 2 {
-		t.Fatalf("Expected 2 link, got %d", len(links))
+		t.Fatalf("Got %d links, expected 2", len(links))
 	}
 	if links[0].URL != url {
-		t.Errorf("Expected URL %s, got %s", url, links[0].URL)
+		t.Errorf("Got URL %s, expected %s", links[0].URL, url)
 	}
 	if links[0].Title != title {
-		t.Errorf("Expected title '%s', got '%s'", title, links[0].Title)
+		t.Errorf("Got title '%s', expected '%s'", links[0].Title, title)
 	}
 	if links[0].Title != title {
-		t.Errorf("Expected description '%s', got '%s'", description, links[0].Description)
+		t.Errorf("Got description '%s', expected '%s'", links[0].Description, description)
 	}
 	if links[0].AddedAt.IsZero() {
 		t.Errorf("Expected non-zero AddedAt")
 	}
 	if links[1].URL != url2 {
-		t.Errorf("Expected URL %s, got %s", url2, links[1].URL)
+		t.Errorf("Got URL %s, expected %s", links[1].URL, url2)
 	}
 	if links[1].Title != title2 {
-		t.Errorf("Expected title '%s', got '%s'", title2, links[1].Title)
+		t.Errorf("Got title '%s', expected '%s'", links[1].Title, title2)
 	}
 	if links[1].Title != title2 {
-		t.Errorf("Expected description '%s', got '%s'", description2, links[1].Description)
+		t.Errorf("Got description '%s', expected '%s'", links[1].Description, description2)
 	}
 	if links[1].AddedAt.IsZero() {
 		t.Errorf("Expected non-zero AddedAt")
@@ -95,16 +95,16 @@ func TestDB(t *testing.T) {
 		t.Fatalf("Failed to search: %v", err)
 	}
 	if len(linksSearch) != 1 {
-		t.Fatalf("Expected 1 links, got %d", len(linksSearch))
+		t.Fatalf("Got %d links, expected 1", len(linksSearch))
 	}
 	if linksSearch[0].URL != url {
-		t.Errorf("Expected single URL %s, got %s", url, linksSearch[0].URL)
+		t.Errorf("Got URL %s, expected %s", linksSearch[0].URL, url)
 	}
 	if linksSearch[0].Title != title {
-		t.Errorf("Expected single title '%s', got '%s'", title, linksSearch[0].Title)
+		t.Errorf("Got title '%s', expected '%s'", linksSearch[0].Title, title)
 	}
 	if linksSearch[0].Description != description {
-		t.Errorf("Expected single description '%s', got '%s'", description, linksSearch[0].Description)
+		t.Errorf("Got description '%s', expected '%s'", linksSearch[0].Description, description)
 	}
 	if linksSearch[0].AddedAt.IsZero() {
 		t.Errorf("Expected single non-zero AddedAt")
@@ -116,13 +116,13 @@ func TestDB(t *testing.T) {
 		t.Errorf("Failed to get link: %v", err)
 	}
 	if link.URL != url {
-		t.Errorf("Expected single URL %s, got %s", url, link.URL)
+		t.Errorf("Got URL %s, expected %s", link.URL, url)
 	}
 	if link.Title != title {
-		t.Errorf("Expected single title '%s', got '%s'", title, link.Title)
+		t.Errorf("Got title '%s', expected '%s'", link.Title, title)
 	}
 	if link.Description != description {
-		t.Errorf("Expected single description '%s', got '%s'", description, link.Description)
+		t.Errorf("Got description '%s', expected '%s'", link.Description, description)
 	}
 	if link.AddedAt.IsZero() {
 		t.Errorf("Expected single non-zero AddedAt")
@@ -131,7 +131,7 @@ func TestDB(t *testing.T) {
 	// Test non-existent link
 	_, err = database.GetLink(99999)
 	if err != ErrNotFound {
-		t.Errorf("Expected ErrNotFound for fetching non-existent link, got: %v", err)
+		t.Errorf("Got %v, expected ErrNotFound for fetching non-existent link", err)
 	}
 
 	// Test updating a link
@@ -144,7 +144,7 @@ func TestDB(t *testing.T) {
 		t.Errorf("Failed to get updated link: %v", err)
 	}
 	if link.Title != "Updated title" {
-		t.Errorf("Expected updated title '%s', got '%s'", "Updated title", link.Title)
+		t.Errorf("Got title '%s', expected '%s'", link.Title, "Updated title")
 	}
 
 	// Test deleting a link
@@ -156,7 +156,7 @@ func TestDB(t *testing.T) {
 	// Test deleting a non-existing link
 	err = database.DeleteLink(9999)
 	if err != ErrNotFound {
-		t.Errorf("Expected ErrNotFound for deleting non-existent link, got: %v", err)
+		t.Errorf("Got %v, expected ErrNotFound for deleting non-existent link", err)
 	}
 
 	// Verify the link was deleted
@@ -165,6 +165,6 @@ func TestDB(t *testing.T) {
 		t.Fatalf("Failed to get links after deletion: %v", err)
 	}
 	if len(links) != 1 {
-		t.Fatalf("Expected 1 links after deletion, got %d", len(links))
+		t.Fatalf("Got %d links after deletion, expected 1", len(links))
 	}
 }
