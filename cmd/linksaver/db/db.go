@@ -11,7 +11,7 @@ import (
 var ErrDuplicate = errors.New("duplicate")
 var ErrNotFound = errors.New("not found")
 
-// Link represents a saved web link
+// Link represents a saved web link.
 type Link struct {
 	ID          int64
 	URL         string
@@ -20,12 +20,12 @@ type Link struct {
 	AddedAt     time.Time
 }
 
-// DB is a wrapper around sql.DB
+// DB is a wrapper around sql.DB.
 type DB struct {
 	*sql.DB
 }
 
-// InitDB initializes the database
+// InitDB initializes the database.
 func InitDB(dataSourceName string) (*DB, error) {
 	db, err := sql.Open("sqlite", dataSourceName)
 	if err != nil {
@@ -76,7 +76,7 @@ func InitDB(dataSourceName string) (*DB, error) {
 	return &DB{db}, nil
 }
 
-// GetAllLinks returns all links from the database
+// GetAllLinks returns all links from the database.
 func (db *DB) GetAllLinks() ([]Link, error) {
 	rows, err := db.Query("SELECT id, url, title, description, added_at FROM links ORDER BY added_at DESC")
 	if err != nil {
@@ -99,7 +99,7 @@ func (db *DB) GetAllLinks() ([]Link, error) {
 	return links, nil
 }
 
-// Search returns links from the database matching a search string
+// Search returns links from the database matching a search string.
 func (db *DB) Search(s string) ([]Link, error) {
 	rows, err := db.Query(`
 		SELECT l.id, l.url, l.title, l.description, l.added_at
@@ -126,7 +126,7 @@ func (db *DB) Search(s string) ([]Link, error) {
 	return links, nil
 }
 
-// AddLink adds a new link to the database
+// AddLink adds a new link to the database.
 func (db *DB) AddLink(url, title, description string, body []byte) (int64, error) {
 	tx, err := db.Begin()
 	if err != nil {
@@ -163,8 +163,8 @@ func (db *DB) AddLink(url, title, description string, body []byte) (int64, error
 	return id, nil
 }
 
-// GetLink returns a single link from the database
-// returns ErrNotFound if no row with the given id is found
+// GetLink returns a single link from the database,
+// returns ErrNotFound if no row with the given id is found.
 func (db *DB) GetLink(id int64) (Link, error) {
 	var link Link
 	err := db.QueryRow("SELECT id, url, title, description, added_at FROM links WHERE id = ?", id).
@@ -179,7 +179,7 @@ func (db *DB) GetLink(id int64) (Link, error) {
 	}
 }
 
-// DeleteLink deletes a link from the database
+// DeleteLink deletes a link from the database.
 func (db *DB) DeleteLink(id int64) error {
 	result, err := db.Exec("DELETE FROM links WHERE id = ?", id)
 	if err != nil {
@@ -195,6 +195,7 @@ func (db *DB) DeleteLink(id int64) error {
 	return nil
 }
 
+// UpdateLink updates a link in the database.
 func (db *DB) UpdateLink(id int64, title string) error {
 	result, err := db.Exec("UPDATE links SET title = ? WHERE id = ?", title, id)
 	if err != nil {

@@ -32,7 +32,7 @@ const maxTitleLength = 250
 const maxDescriptionLength = 1020
 const maxBodyLength = 1000000
 
-// Handlers holds dependencies for the handlers
+// Handlers holds dependencies for the handlers.
 type Handlers struct {
 	executableDir      string
 	database           *db.DB
@@ -44,7 +44,7 @@ type Handlers struct {
 	passwordBcryptHash []byte
 }
 
-// NewHandlers creates a new Handlers
+// NewHandlers creates a new Handlers.
 func NewHandlers(executableDir string, database *db.DB, screenshotsDir string, usernameBcryptHash, passwordBcryptHash []byte) *Handlers {
 	templates := template.New("").Funcs(template.FuncMap{"screenshotFilename": screenshotFilename})
 
@@ -105,6 +105,12 @@ func NewHandlers(executableDir string, database *db.DB, screenshotsDir string, u
 	}
 }
 
+// Routes sets up and returns the HTTP routing handler for the application.
+// It configures routes for static files, screenshots (if enabled), and API endpoints.
+// Static files are served either from the local filesystem or embedded files.
+// If authentication is configured (via usernameBcryptHash and passwordBcryptHash),
+// all routes will be protected with HTTP Basic Authentication.
+// Returns an http.Handler that includes all configured routes with common headers.
 func (h *Handlers) Routes() http.Handler {
 	mux := http.NewServeMux()
 
@@ -145,12 +151,12 @@ type Link struct {
 	Screenshot  string
 }
 
-// ListLinks handles the request to list all links
+// ListLinks handles the request to list all links.
 func (h *Handlers) ListLinks(w http.ResponseWriter, r *http.Request) {
 	h.listLinks(w, r, http.StatusOK)
 }
 
-// AddLink handles the request to add a new link
+// AddLink handles the request to add a new link.
 func (h *Handlers) AddLink(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		sendError(w, fmt.Sprintf("Failed to parse form: %v", err), http.StatusBadRequest)
@@ -218,7 +224,7 @@ func isPrivateOrLocalhost(host string) bool {
 		strings.HasSuffix(strings.ToLower(host), ".localhost")
 }
 
-// extractTitleAndDescriptionAndBodyFromURL fetches the URL and extracts the page title from HTML
+// extractTitleAndDescriptionAndBodyFromURL fetches the URL and extracts the page title from HTML.
 func (h *Handlers) extractTitleAndDescriptionAndBodyFromURL(url string) (string, string, []byte, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -279,7 +285,7 @@ func (h *Handlers) extractTitleAndDescriptionAndBodyFromURL(url string) (string,
 	return title, description, responseBody, nil
 }
 
-// extractTitle recursively searches for the "title" element in the HTML tree
+// extractTitle recursively searches for the "title" element in the HTML tree.
 func extractTitle(n *html.Node) string {
 	if n.Type == html.ElementNode && n.Data == "title" {
 		// Found the title element, extract its text content
@@ -296,7 +302,7 @@ func extractTitle(n *html.Node) string {
 	return ""
 }
 
-// extractTextContent extracts all text content from a node and its children
+// extractTextContent extracts all text content from a node and its children.
 func extractTextContent(n *html.Node) string {
 	var text strings.Builder
 
@@ -311,7 +317,7 @@ func extractTextContent(n *html.Node) string {
 	return text.String()
 }
 
-// extractDescription recursively searches for the "meta" element in the HTML tree
+// extractDescription recursively searches for the "meta" element in the HTML tree.
 func extractDescription(n *html.Node) string {
 	if n.Type == html.ElementNode && n.Data == "meta" && extractAttribute(n, "name") == "description" {
 		return extractAttribute(n, "content")
@@ -423,7 +429,7 @@ func (h *Handlers) saveScreenshot(urlString string, screenshot []byte) error {
 	return nil
 }
 
-// GetLink gets a single link
+// GetLink gets a single link.
 func (h *Handlers) GetLink(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
@@ -453,7 +459,7 @@ func (h *Handlers) GetLink(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// EditLink handles the request to edit a link
+// EditLink handles the request to edit a link.
 func (h *Handlers) EditLink(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
@@ -500,7 +506,7 @@ func (h *Handlers) EditLink(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// DeleteLink handles the request to delete a link
+// DeleteLink handles the request to delete a link.
 func (h *Handlers) DeleteLink(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
