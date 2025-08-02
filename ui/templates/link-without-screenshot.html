@@ -1,30 +1,30 @@
 {{define "link-without-screenshot"}}
-<div class="link-item link-header list-group-item border rounded shadow-sm p-2 d-flex flex-column">
+<div class="link-item link-header box info bg f-col">
 
-        <h5 class="link-title"><a href="{{.URL}}" target="_blank"
-               class="text-decoration-none d-inline-block text-truncate w-100"
+        <h5 class="link-title list-of-links"><a href="{{.URL}}" target="_blank"
+               class="inline-block text-truncate width:100%"
                title="{{.Title}}">{{.Title}}</a></h5>
-        <div class="link-title-edit d-none">
-            <div class="d-flex">
+        <div class="link-title-edit" hidden>
+            <div class="f-row">
                 <form hx-patch="./{{.ID}}" hx-swap="outerHTML" hx-target="closest .link-item"
                       hx-disabled-elt="find button"
                       _="
                    on htmx:afterRequest
                    if event.detail.failed then
-                     put event.detail.xhr.responseText into #error
-                     remove .d-none from #error
+                     put event.detail.xhr.responseText into #error-message
+                     remove @hidden from #error
                    else
-                     put '' into #error
-                     add .d-none to #error
+                     put '' into #error-message
+                     add @hidden to #error
                    end
                  ">
-                    <input type="text" name="title" value="{{.Title}}" class="form-control mb-1" required>
-                    <button class="btn btn-sm" type="submit" title="Save">&#x2714;</button>
-                    <button class="btn btn-sm" type="reset" title="Cancel"
+                    <input type="text" name="title" value="{{.Title}}" class="width:100%" required>
+                    <button class="iconbutton" type="submit" title="Save">&#x2714;</button>
+                    <button class="iconbutton" type="reset" title="Cancel"
                             _="
                          on click
-                         add .d-none to the closest <.link-title-edit />
-                         remove .d-none from <.link-title /> in the closest <.link-item />
+                         add @hidden to the closest <.link-title-edit />
+                         remove @hidden from <.link-title /> in the closest <.link-item />
                        "
                     >&#x274C;
                     </button>
@@ -32,36 +32,35 @@
             </div>
         </div>
         <p>{{.Description}}</p>
-        <div class="mt-auto"><a href="{{.URL}}" target="_blank"
-                class="text-muted small text-decoration-none d-inline-block text-truncate w-100"
+        <div class="mt-auto list-of-links"><a href="{{.URL}}" target="_blank"
+                class="inline-block text-truncate width:100%"
                 title="{{.URL}}">{{.URL}}</a>
         </div>
         <div>
-            <button class="btn btn-light btn-sm"
-                    _="
+            <button _="
                      on click
-                     add .d-none to <.link-title /> in the closest <.link-item />
-                     remove .d-none from <.link-title-edit /> in the closest <.link-item />
+                     add @hidden to <.link-title /> in the closest <.link-item />
+                     remove @hidden from <.link-title-edit /> in the closest <.link-item />
                    "
             >Edit
             </button>
-            <button class="btn btn-danger btn-sm"
+            <button class="warn bg"
                     hx-delete="./{{.ID}}"
                     hx-swap="delete swap:1s"
                     hx-target="closest .link-item"
                     _="
                                              on htmx:afterRequest
                                              if event.detail.failed then
-                                               put event.detail.xhr.responseText into #error
-                                               remove .d-none from #error
+                                               put event.detail.xhr.responseText into #error-message
+                                               remove @hidden from #error
                                              else
-                                               put '' into #error
-                                               add .d-none to #error
+                                               put '' into #error-message
+                                               add @hidden to #error
                                              end
                                            "
             >Delete
             </button>
-            <span class="text-muted small text-nowrap">{{.AddedAt.Format "2006-01-02 15:04:05 MST"}}</span>
+            <span class="text-nowrap">{{.AddedAt.Format "2006-01-02 15:04:05 MST"}}</span>
         </div>
 
 

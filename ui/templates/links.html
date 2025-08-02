@@ -1,8 +1,7 @@
 {{define "links"}}
 {{if .Search}}
-    <h2 class="mb-3 text-secondary">Search results for "{{.Search}}"
+    <h2>Search results for "{{.Search}}"
         <button type="button"
-                class="btn btn-secondary"
                 hx-get="."
                 hx-target="#links"
                 hx-push-url="true"
@@ -12,7 +11,7 @@
                 ">Clear</button>
     </h2>
 {{else}}
-    <h2 class="mb-3 text-secondary">Saved Links</h2>
+    <h2>Saved Links</h2>
 {{end}}
 {{if .Links}}
     <div class="links-grid">
@@ -27,11 +26,11 @@
         {{end}}
     </div>
 {{else if .Search}}
-    <div class="text-center text-muted py-4">
+    <div>
         <p>No results found</p>
     </div>
 {{else}}
-    <div class="text-center text-muted py-4">
+    <div>
         <p>No links saved yet. Add your first link!</p>
     </div>
 {{end}}

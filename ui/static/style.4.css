@@ -42,9 +42,24 @@ form {
 }
 
 .link-item {
-    background-color: var(--bs-secondary-bg);
+    margin: 0;
+    padding: 0.5rem;
 }
 
-.link-header {
-    padding: 0.5rem;
+.text-nowrap {
+  white-space: nowrap;
+}
+
+.text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mt-auto {
+  margin-top: auto;
+}
+
+.inline-block {
+  display: inline-block;
 }
