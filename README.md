@@ -107,9 +107,9 @@ The application provides the following HTTP endpoints:
 
 - **Go 1.24**
 - **modernc.org/sqlite**: Pure Go SQLite driver
-- **Bootstrap**: CSS framework for responsive design
-- **HTMX**: Dynamic HTML updates without JavaScript
-- **Hyperscript**: Friendly client scripting
+- **htmx**: High power tools for HTML
+- **_hyperscript**: An easy & approachable language for modern web front-ends
+- **missing.css**: The Missing CSS Stylesheet
 - **chromedp**: Run headless Chrome browser to fetch page, extract title, description and take screenshot
 
 ## License
