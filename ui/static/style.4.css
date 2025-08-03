@@ -7,6 +7,11 @@ form {
     display: contents;
 }
 
+/* Override weirdness in missing.css */
+input::placeholder {
+    text-align: start !important;
+}
+
 .form-grid {
     display: grid;
     gap: 1rem;
