@@ -350,6 +350,90 @@ func TestHandlers(t *testing.T) {
 		}
 	})
 
+	t.Run("add note success", func(t *testing.T) {
+		req := httptest.NewRequest("POST", "/", strings.NewReader("note-title=NoteTitle&note-text=NoteText"))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.SetBasicAuth(testUsername, testPassword)
+		response, body := testRequest(t, handler, req)
+
+		if status := response.StatusCode; status != http.StatusCreated {
+			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusCreated)
+		}
+
+		locationHeader := response.Header.Get("Location")
+		if linkIdString, found := strings.CutPrefix(locationHeader, "/"); !found {
+			t.Errorf("Response Location header doesn't has correct format: '%s'", locationHeader)
+		} else {
+			if linkId, err = strconv.ParseInt(linkIdString, 10, 64); err != nil {
+				t.Errorf("Failed to convert note ID: %v", err)
+			}
+		}
+
+		if !bytes.Contains(body, []byte("NoteTitle")) {
+			t.Errorf("Response doesn't contain the expected note title\n%s", string(body))
+		}
+		if !bytes.Contains(body, []byte("NoteText")) {
+			t.Errorf("Response doesn't contain the expected note text\n%s", string(body))
+		}
+	})
+
+	t.Run("add note missing text", func(t *testing.T) {
+		req := httptest.NewRequest("POST", "/", strings.NewReader("note-title=NoteTitle&note-text="))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.SetBasicAuth(testUsername, testPassword)
+		response, _ := testRequest(t, handler, req)
+
+		if status := response.StatusCode; status != http.StatusBadRequest {
+			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusBadRequest)
+		}
+	})
+
+	t.Run("get single note success", func(t *testing.T) {
+		req := httptest.NewRequest("GET", fmt.Sprintf("/%d", linkId), nil)
+		req.SetBasicAuth(testUsername, testPassword)
+		response, body := testRequest(t, handler, req)
+
+		if status := response.StatusCode; status != http.StatusOK {
+			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
+		}
+
+		if !bytes.Contains(body, []byte("NoteTitle")) {
+			t.Errorf("Response doesn't contain expected title\n%s", string(body))
+		}
+		if !bytes.Contains(body, []byte("NoteText")) {
+			t.Errorf("Response doesn't contain the expected note\n%s", string(body))
+		}
+	})
+
+	t.Run("get single note as JSON", func(t *testing.T) {
+		req := httptest.NewRequest("GET", fmt.Sprintf("/%d", linkId), nil)
+		req.Header.Set("Accept", "application/json")
+		req.SetBasicAuth(testUsername, testPassword)
+		response, body := testRequest(t, handler, req)
+
+		if status := response.StatusCode; status != http.StatusOK {
+			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
+		}
+
+		if contentType := response.Header.Get("Content-Type"); !strings.HasPrefix(contentType, "application/json") {
+			t.Errorf("Wrong Content-Type: %s", contentType)
+		}
+
+		var data db.Link
+		if err := json.Unmarshal(body, &data); err != nil {
+			t.Errorf("Response doesn't contain the expected JSON\n%s", string(body))
+		}
+		if !strings.HasPrefix(data.URL, "note:") {
+			t.Errorf("Response doesn't contain the expected note URL\n%s", data.URL)
+		}
+		if data.Title != "NoteTitle" {
+			t.Errorf("Response doesn't contain the expected note title\n%s", data.Title)
+		}
+		if data.Description != "NoteText" {
+			t.Errorf("Response doesn't contain the expected note\n%s", data.Description)
+		}
+	})
+
 	t.Run("unauthorized", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/", nil)
 		response, _ := testRequest(t, handler, req)

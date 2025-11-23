@@ -47,7 +47,10 @@ type Handlers struct {
 
 // NewHandlers creates a new Handlers.
 func NewHandlers(executableDir string, database *db.DB, screenshotsDir string, usernameBcryptHash, passwordBcryptHash []byte) *Handlers {
-	templates := template.New("").Funcs(template.FuncMap{"screenshotFilename": screenshotFilename})
+	templates := template.New("").Funcs(template.FuncMap{
+		"screenshotFilename": screenshotFilename,
+		"isNote":             isNote,
+	})
 
 	templatesDir := filepath.Join(executableDir, "ui/templates")
 	templateFiles, err := filepath.Glob(filepath.Join(templatesDir, "*.html"))
@@ -131,7 +134,7 @@ func (h *Handlers) Routes() http.Handler {
 	}
 
 	mux.HandleFunc("GET /{$}", h.ListLinks)
-	mux.HandleFunc("POST /{$}", h.AddLink)
+	mux.HandleFunc("POST /{$}", h.AddItem)
 	mux.HandleFunc("GET /{id}", h.GetLink)
 	mux.HandleFunc("PATCH /{id}", h.EditLink)
 	mux.HandleFunc("DELETE /{id}", h.DeleteLink)
@@ -157,30 +160,57 @@ func (h *Handlers) ListLinks(w http.ResponseWriter, r *http.Request) {
 	h.listLinks(w, r, http.StatusOK)
 }
 
-// AddLink handles the request to add a new link.
-func (h *Handlers) AddLink(w http.ResponseWriter, r *http.Request) {
+// AddItem handles the request to add a new item.
+func (h *Handlers) AddItem(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		sendError(w, fmt.Sprintf("Failed to parse form: %v", err), http.StatusBadRequest)
 		return
 	}
 
 	urlString := r.PostForm.Get("url")
-	if urlString == "" {
-		sendError(w, "URL is required", http.StatusBadRequest)
-		return
-	}
+	if urlString != "" {
+		// Parse and validate URL
+		parsedURL, err := url.Parse(urlString)
+		if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") || isPrivateOrLocalhost(parsedURL.Hostname()) {
+			sendError(w, "Invalid URL format. Must be a valid HTTP/HTTPS URL", http.StatusBadRequest)
+			return
+		}
+		h.addLink(w, r, parsedURL.String())
+	} else {
+		if err := r.ParseForm(); err != nil {
+			sendError(w, fmt.Sprintf("Failed to parse form: %v", err), http.StatusBadRequest)
+			return
+		}
 
-	// Parse and validate URL
-	parsedURL, err := url.Parse(urlString)
-	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") || isPrivateOrLocalhost(parsedURL.Host) {
-		sendError(w, "Invalid URL format. Must be a valid HTTP/HTTPS URL", http.StatusBadRequest)
-		return
-	}
-	urlToSave := parsedURL.String()
+		title := strings.TrimSpace(r.PostForm.Get("note-title"))
+		if title == "" {
+			sendError(w, "Note title is required", http.StatusBadRequest)
+			return
+		}
+		if len(title) > maxTitleLength {
+			sendError(w, fmt.Sprintf("Note title is too long, max %d characters allowed", maxTitleLength), http.StatusBadRequest)
+			return
+		}
 
+		note := strings.TrimSpace(r.PostForm.Get("note-text"))
+		if note == "" {
+			sendError(w, "Note text is required", http.StatusBadRequest)
+			return
+		}
+		if len(note) > maxDescriptionLength {
+			sendError(w, fmt.Sprintf("Note text is too long, max %d characters allowed", maxDescriptionLength), http.StatusBadRequest)
+			return
+		}
+		h.addNote(w, r, title, note)
+	}
+}
+
+// addLink handles the request to add a new link.
+func (h *Handlers) addLink(w http.ResponseWriter, r *http.Request, urlToSave string) {
 	var title, description string
 	var body []byte
 	var screenshot []byte
+	var err error
 	if h.browserContext != nil {
 		title, description, body, screenshot, err = h.extractTitleAndDescriptionAndBodyAndScreenshotFromURL(urlToSave)
 		if err != nil {
@@ -215,6 +245,23 @@ func (h *Handlers) AddLink(w http.ResponseWriter, r *http.Request) {
 	h.listLinks(w, r, http.StatusCreated)
 }
 
+// addNote handles the request to add a new free-form note.
+func (h *Handlers) addNote(w http.ResponseWriter, r *http.Request, title string, note string) {
+	description := note
+
+	// Generate a pseudo URL to satisfy the NOT NULL UNIQUE constraint and keep entries distinguishable.
+	urlToSave := fmt.Sprintf("note:%d", time.Now().UnixMilli())
+
+	id, err := h.database.AddLink(urlToSave, title, description, []byte(note))
+	if err != nil {
+		sendError(w, fmt.Sprintf("Failed to add note: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Location", fmt.Sprintf("/%v", id))
+	h.listLinks(w, r, http.StatusCreated)
+}
+
 func isPrivateOrLocalhost(host string) bool {
 	ip := net.ParseIP(host)
 	if ip != nil {
@@ -232,7 +279,7 @@ func (h *Handlers) extractTitleAndDescriptionAndBodyFromURL(url string) (string,
 		return "", "", nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	// Add browser-like headers to avoid being blocked by anti-bot measures
+	// AddItem browser-like headers to avoid being blocked by anti-bot measures
 	req.Header.Set("User-Agent", "LinkSaver/1.0")
 	req.Header.Set("Accept", "text/html,application/xhtml+xml")
 	req.Header.Set("Connection", "keep-alive")
@@ -619,4 +666,8 @@ func sendError(w http.ResponseWriter, errorMessage string, status int) {
 func screenshotFilename(urlString string) string {
 	hash := sha256.Sum256([]byte(urlString))
 	return hex.EncodeToString(hash[:]) + ".png"
+}
+
+func isNote(urlString string) bool {
+	return strings.HasPrefix(urlString, "note:")
 }

@@ -11,6 +11,9 @@ form {
 input::placeholder {
     text-align: start !important;
 }
+textarea::placeholder {
+    text-align: start !important;
+}
 
 .form-grid {
     display: grid;

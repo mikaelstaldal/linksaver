@@ -32,9 +32,12 @@
             </div>
         </div>
         <p>{{.Description}}</p>
-        <div class="mt-auto list-of-links"><a href="{{.URL}}" target="_blank"
-                class="inline-block text-truncate width:100%"
-                title="{{.URL}}">{{.URL}}</a>
+        <div class="mt-auto list-of-links">
+            {{if not (isNote .URL)}}
+                <a href="{{.URL}}" target="_blank"
+                    class="inline-block text-truncate width:100%"
+                    title="{{.URL}}">{{.URL}}</a>
+            {{end}}
         </div>
         <div>
             <button _="
