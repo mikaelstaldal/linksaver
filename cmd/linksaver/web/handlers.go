@@ -43,10 +43,15 @@ type Handlers struct {
 	browserContext     context.Context
 	usernameBcryptHash []byte
 	passwordBcryptHash []byte
+	forTesting         bool
 }
 
 // NewHandlers creates a new Handlers.
 func NewHandlers(executableDir string, database *db.DB, screenshotsDir string, usernameBcryptHash, passwordBcryptHash []byte) *Handlers {
+	return newHandlers(executableDir, database, screenshotsDir, usernameBcryptHash, passwordBcryptHash, false)
+}
+
+func newHandlers(executableDir string, database *db.DB, screenshotsDir string, usernameBcryptHash, passwordBcryptHash []byte, forTesting bool) *Handlers {
 	templates := template.New("").Funcs(template.FuncMap{
 		"screenshotFilename": screenshotFilename,
 		"isNote":             isNote,
@@ -106,6 +111,7 @@ func NewHandlers(executableDir string, database *db.DB, screenshotsDir string, u
 		browserContext:     browserContext,
 		usernameBcryptHash: usernameBcryptHash,
 		passwordBcryptHash: passwordBcryptHash,
+		forTesting:         forTesting,
 	}
 }
 
@@ -171,7 +177,7 @@ func (h *Handlers) AddItem(w http.ResponseWriter, r *http.Request) {
 	if urlString != "" {
 		// Parse and validate URL
 		parsedURL, err := url.Parse(urlString)
-		if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") || isPrivateOrLocalhost(parsedURL.Hostname()) {
+		if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") || h.isPrivateOrLocalhost(parsedURL.Hostname()) {
 			sendError(w, "Invalid URL format. Must be a valid HTTP/HTTPS URL", http.StatusBadRequest)
 			return
 		}
@@ -262,14 +268,39 @@ func (h *Handlers) addNote(w http.ResponseWriter, r *http.Request, title string,
 	h.listLinks(w, r, http.StatusCreated)
 }
 
-func isPrivateOrLocalhost(host string) bool {
+func (h *Handlers) isPrivateOrLocalhost(host string) bool {
+	if h.forTesting {
+		return false
+	}
+
 	ip := net.ParseIP(host)
 	if ip != nil {
 		return ip.IsLoopback() || ip.IsPrivate() || ip.IsUnspecified()
 	}
 	// Handle hostname cases
-	return host == "" || strings.HasPrefix(strings.ToLower(host), "localhost") ||
-		strings.HasSuffix(strings.ToLower(host), ".localhost")
+	if host == "" || strings.HasPrefix(strings.ToLower(host), "localhost") ||
+		strings.HasSuffix(strings.ToLower(host), ".localhost") {
+		return true
+	}
+
+	// Resolve hostname through DNS with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+	if err != nil {
+		log.Printf("DNS lookup failed for %s: %v", host, err)
+		return true
+	}
+
+	// Check if any resolved IP is private
+	for _, ip := range ips {
+		if ip.IP.IsLoopback() || ip.IP.IsPrivate() || ip.IP.IsUnspecified() {
+			return true
+		}
+	}
+
+	return false
 }
 
 // extractTitleAndDescriptionAndBodyFromURL fetches the URL and extracts the page title from HTML.
