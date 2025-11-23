@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/mikaelstaldal/linksaver/cmd/linksaver/db"
-	"golang.org/x/crypto/bcrypt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -14,6 +12,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/mikaelstaldal/linksaver/cmd/linksaver/db"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func TestHandlers(t *testing.T) {

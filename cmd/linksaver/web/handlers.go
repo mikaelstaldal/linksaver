@@ -9,11 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/chromedp/cdproto/page"
-	"github.com/chromedp/chromedp"
-	"github.com/mikaelstaldal/linksaver/cmd/linksaver/db"
-	"github.com/mikaelstaldal/linksaver/ui"
-	"golang.org/x/net/html"
 	"html/template"
 	"io"
 	"log"
@@ -26,6 +21,12 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/chromedp/cdproto/page"
+	"github.com/chromedp/chromedp"
+	"github.com/mikaelstaldal/linksaver/cmd/linksaver/db"
+	"github.com/mikaelstaldal/linksaver/ui"
+	"golang.org/x/net/html"
 )
 
 const maxTitleLength = 250

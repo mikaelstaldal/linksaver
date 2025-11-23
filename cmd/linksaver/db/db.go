@@ -3,9 +3,10 @@ package db
 import (
 	"database/sql"
 	"errors"
+	"time"
+
 	"modernc.org/sqlite"
 	sqlite3 "modernc.org/sqlite/lib"
-	"time"
 )
 
 var ErrDuplicate = errors.New("duplicate")

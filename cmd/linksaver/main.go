@@ -3,15 +3,16 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/mikaelstaldal/linksaver/cmd/linksaver/db"
-	"github.com/mikaelstaldal/linksaver/cmd/linksaver/web"
-	"golang.org/x/crypto/bcrypt"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/mikaelstaldal/linksaver/cmd/linksaver/db"
+	"github.com/mikaelstaldal/linksaver/cmd/linksaver/web"
+	"golang.org/x/crypto/bcrypt"
 )
 
 const databaseName = "linksaver.sqlite"

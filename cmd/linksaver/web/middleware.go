@@ -1,8 +1,9 @@
 package web
 
 import (
-	"golang.org/x/crypto/bcrypt"
 	"net/http"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 func commonHeaders(next http.Handler) http.Handler {
