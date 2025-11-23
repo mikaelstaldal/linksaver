@@ -1,5 +1,5 @@
-# Use Go 1.24 as the base image for building
-FROM golang:1.24@sha256:20a022e5112a144aa7b7aeb3f22ebf2cdaefcc4aac0d64e8deeee8cdc18b9c0f AS builder
+# Use Go 1.25 as the base image for building
+FROM golang:1.25@sha256:698183780de28062f4ef46f82a79ec0ae69d2d22f7b160cf69f71ea8d98bf25d AS builder
 
 # Copy go mod and sum files
 COPY go.mod go.sum ./

@@ -105,7 +105,7 @@ The application provides the following HTTP endpoints:
 
 ## Dependencies
 
-- **Go 1.24**
+- **Go 1.25**
 - **modernc.org/sqlite**: Pure Go SQLite driver
 - **htmx**: High power tools for HTML
 - **_hyperscript**: An easy & approachable language for modern web front-ends
