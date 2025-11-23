@@ -4,9 +4,12 @@ A simple and efficient web application for saving and managing your favorite lin
 Link Saver automatically extracts page title, description and optionally screenshots from URLs and 
 provides a web interface for organizing your bookmarks.
 
+You can also save short notes which are not connected to any particular URL along with your bookmarks.
+
 ## Features
 
 - **Save Links**: Add URLs with automatic title and description extraction and screenshots from web pages
+- **Save Nodes**: Write short notes and save them among your bookmarks.
 - **SQLite Storage**: Lightweight, file-based database with no external dependencies
 - **Docker Support**: Easy deployment with Docker containers
 - **HTTP basic auth**: Protect the application with username and password
@@ -27,7 +30,7 @@ provides a web interface for organizing your bookmarks.
    ```
 Note: This is only secure if you also use https.   
 
-The application will store data in the directory mounted at `/data`, use `data/linksaver.sqlite` as the database file 
+The application will store data in the directory mounted at `/data`, using `data/linksaver.sqlite` as the database file 
 and store screenshots in `data/screenshots`. 
 
 
@@ -47,7 +50,7 @@ and store screenshots in `data/screenshots`.
    ```  
 Note: This is only secure if you also use https.   
 
-The application will store data in the current directory, use `./linksaver.sqlite` as the database file.
+The application will store data in the current directory, using `./linksaver.sqlite` as the database file.
 
 You can use the `apparmor-profile` file as a template for an Apparmor profile, you need to substitute 
 `${PATH_TO_EXECUTABLE}` and `${PATH_TO_DATA}` with absolute paths. 
@@ -60,8 +63,9 @@ Once the application is running, open your web browser and navigate to:
 
 From the web interface, you can:
 1. **Add a new link**: Enter a URL in the input field and click "Add Link"
-2. **View all links**: All saved links are displayed on the main page
-3. **Delete a link**: Click the delete button next to any link to remove it
+2. **Add a new note**: Enter title and text in the input fields and click "Add Note"
+3. **View all links**: All saved links/notes are displayed on the main page
+4. **Delete a link**: Click the delete button next to any link/note to remove it
 
 ## Development
 
@@ -98,7 +102,7 @@ The application provides the following HTTP endpoints:
 
 - `GET /` - Display all saved links
 - `GET /?s=term` - Search for links
-- `POST /` - Add a new link
+- `POST /` - Add a new link/note
 - `GET /{id}` - Get a specific link
 - `PATCH /{id}` - Edit a specific link
 - `DELETE /{id}` - Delete a specific link
