@@ -50,6 +50,21 @@ func TestDB(t *testing.T) {
 		t.Fatalf("Expected different id")
 	}
 
+	// Test adding a link without a body
+	url3 := "https://empty.com"
+	title3 := "PDF document"
+	description3 := "application/pdf"
+	id3, err := database.AddLink(url3, title3, description3, nil)
+	if err != nil {
+		t.Fatalf("Failed to add link 3: %v", err)
+	}
+	if id3 <= 0 {
+		t.Fatalf("Got %d, expected positive ID", id)
+	}
+	if id3 == id || id3 == id2 {
+		t.Fatalf("Expected different id")
+	}
+
 	// Test adding duplicate link
 	_, err = database.AddLink(url, "bogus", "", nil)
 	if err != ErrDuplicate {
@@ -61,8 +76,8 @@ func TestDB(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get links: %v", err)
 	}
-	if len(links) != 2 {
-		t.Fatalf("Got %d links, expected 2", len(links))
+	if len(links) != 3 {
+		t.Fatalf("Got %d links, expected 3", len(links))
 	}
 	if links[0].URL != url {
 		t.Errorf("Got URL %s, expected %s", links[0].URL, url)
@@ -164,7 +179,7 @@ func TestDB(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get links after deletion: %v", err)
 	}
-	if len(links) != 1 {
-		t.Fatalf("Got %d links after deletion, expected 1", len(links))
+	if len(links) != 2 {
+		t.Fatalf("Got %d links after deletion, expected 2", len(links))
 	}
 }

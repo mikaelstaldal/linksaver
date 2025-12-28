@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -478,13 +479,13 @@ func Test_extractTitleAndDescriptionAndBodyFromURL(t *testing.T) {
 			wantErr:      false,
 		},
 		{
-			name:         "not HTML content",
-			contentType:  "image/jpeg",
+			name:         "PDF content",
+			contentType:  "application/pdf",
 			returnedBody: []byte("binary data"),
-			title:        "",
-			description:  "",
+			title:        "server.URL",
+			description:  "application/pdf",
 			body:         nil,
-			wantErr:      true,
+			wantErr:      false,
 		},
 		{
 			name:         "no title found",
@@ -523,19 +524,89 @@ func Test_extractTitleAndDescriptionAndBodyFromURL(t *testing.T) {
 			}))
 			defer server.Close()
 
-			title, description, body, err := handlers.extractTitleAndDescriptionAndBodyFromURL(server.URL)
+			parsedURL, _ := url.Parse(server.URL)
+			title, description, body, err := handlers.extractTitleAndDescriptionAndBodyFromURL(parsedURL)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("extractTitleAndDescriptionAndBodyFromURL() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if title != tt.title {
-				t.Errorf("extractTitleAndDescriptionAndBodyFromURL() title = '%v', title '%v'", title, tt.title)
+			if tt.title == "server.URL" {
+				if !strings.HasSuffix(server.URL, title) {
+					t.Errorf("extractTitleAndDescriptionAndBodyFromURL() title = '%v', title '%v'", title, server.URL)
+				}
+			} else {
+				if title != tt.title {
+					t.Errorf("extractTitleAndDescriptionAndBodyFromURL() title = '%v', title '%v'", title, tt.title)
+				}
 			}
 			if description != tt.description {
 				t.Errorf("extractTitleAndDescriptionAndBodyFromURL() description = '%v', description '%v'", description, tt.description)
 			}
 			if !bytes.HasPrefix(body, tt.body) {
 				t.Errorf("extractTitleAndDescriptionAndBodyFromURL() body = '%v', body '%v'", string(body), string(tt.body))
+			}
+		})
+	}
+}
+
+func Test_extractTitleFromURL(t *testing.T) {
+	handlers := newHandlers("../../..", nil, "", nil, nil, true)
+
+	tests := []struct {
+		name     string
+		rawURL   string
+		expected string
+		hasError bool
+	}{
+		{
+			name:     "URL with trailing path segment",
+			rawURL:   "http://example.com/some/path",
+			expected: "path",
+			hasError: false,
+		},
+		{
+			name:     "URL with single segment",
+			rawURL:   "http://example.com/single",
+			expected: "single",
+			hasError: false,
+		},
+		{
+			name:     "Root URL with trailing slash",
+			rawURL:   "http://example.com/",
+			expected: "example.com",
+			hasError: false,
+		},
+		{
+			name:     "Root URL without slash",
+			rawURL:   "http://example.com",
+			expected: "example.com",
+			hasError: false,
+		},
+		{
+			name:     "URL with query parameters",
+			rawURL:   "http://example.com/path/to/page?query=1",
+			expected: "page",
+			hasError: false,
+		},
+		{
+			name:     "URL with special characters in path segment",
+			rawURL:   "http://example.com/path/to/chapter_1-2",
+			expected: "chapter_1-2",
+			hasError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			urlParsed, err := url.Parse(tt.rawURL)
+			if (err != nil) != tt.hasError {
+				t.Fatalf("url.Parse() error = %v, hasError %v", err, tt.hasError)
+			}
+			if err == nil {
+				title := handlers.extractTitleFromURL(urlParsed)
+				if title != tt.expected {
+					t.Errorf("extractTitleFromURL() got = %v, want %v", title, tt.expected)
+				}
 			}
 		})
 	}

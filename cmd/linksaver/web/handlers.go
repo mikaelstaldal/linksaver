@@ -181,7 +181,7 @@ func (h *Handlers) AddItem(w http.ResponseWriter, r *http.Request) {
 			sendError(w, "Invalid URL format. Must be a valid HTTP/HTTPS URL", http.StatusBadRequest)
 			return
 		}
-		h.addLink(w, r, parsedURL.String())
+		h.addLink(w, r, parsedURL)
 	} else {
 		if err := r.ParseForm(); err != nil {
 			sendError(w, fmt.Sprintf("Failed to parse form: %v", err), http.StatusBadRequest)
@@ -212,7 +212,7 @@ func (h *Handlers) AddItem(w http.ResponseWriter, r *http.Request) {
 }
 
 // addLink handles the request to add a new link.
-func (h *Handlers) addLink(w http.ResponseWriter, r *http.Request, urlToSave string) {
+func (h *Handlers) addLink(w http.ResponseWriter, r *http.Request, urlToSave *url.URL) {
 	var title, description string
 	var body []byte
 	var screenshot []byte
@@ -231,7 +231,7 @@ func (h *Handlers) addLink(w http.ResponseWriter, r *http.Request, urlToSave str
 		}
 	}
 
-	id, err := h.database.AddLink(urlToSave, title, description, body)
+	id, err := h.database.AddLink(urlToSave.String(), title, description, body)
 	if err != nil {
 		if errors.Is(err, db.ErrDuplicate) {
 			sendError(w, "URL already exists", http.StatusConflict)
@@ -242,7 +242,7 @@ func (h *Handlers) addLink(w http.ResponseWriter, r *http.Request, urlToSave str
 	}
 
 	if screenshot != nil {
-		if err = h.saveScreenshot(urlToSave, screenshot); err != nil {
+		if err = h.saveScreenshot(urlToSave.String(), screenshot); err != nil {
 			sendError(w, fmt.Sprintf("Failed to save screenshot: %v", err), http.StatusInternalServerError)
 		}
 	}
@@ -304,8 +304,8 @@ func (h *Handlers) isPrivateOrLocalhost(host string) bool {
 }
 
 // extractTitleAndDescriptionAndBodyFromURL fetches the URL and extracts the page title from HTML.
-func (h *Handlers) extractTitleAndDescriptionAndBodyFromURL(url string) (string, string, []byte, error) {
-	req, err := http.NewRequest("GET", url, nil)
+func (h *Handlers) extractTitleAndDescriptionAndBodyFromURL(url *url.URL) (string, string, []byte, error) {
+	req, err := http.NewRequest("GET", url.String(), nil)
 	if err != nil {
 		return "", "", nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -333,7 +333,7 @@ func (h *Handlers) extractTitleAndDescriptionAndBodyFromURL(url string) (string,
 
 	contentType := resp.Header.Get("Content-Type")
 	if !strings.HasPrefix(strings.ToLower(contentType), "text/html") && !strings.HasPrefix(strings.ToLower(contentType), "application/xhtml+xml") {
-		return "", "", nil, fmt.Errorf("content type is not HTML: %s", contentType)
+		return h.extractTitleFromURL(url), contentType, nil, nil
 	}
 
 	doc, err := html.Parse(bytes.NewReader(responseBody))
@@ -362,6 +362,18 @@ func (h *Handlers) extractTitleAndDescriptionAndBodyFromURL(url string) (string,
 	}
 
 	return title, description, responseBody, nil
+}
+
+func (h *Handlers) extractTitleFromURL(url *url.URL) string {
+	path := strings.TrimRight(url.Path, "/")
+	lastSegment := filepath.Base(path)
+	var title string
+	if lastSegment != "" && lastSegment != "." && lastSegment != "/" {
+		title = lastSegment
+	} else {
+		title = url.Host
+	}
+	return title
 }
 
 // extractTitle recursively searches for the "title" element in the HTML tree.
@@ -421,9 +433,9 @@ func extractAttribute(n *html.Node, key string) string {
 	return ""
 }
 
-func (h *Handlers) extractTitleAndDescriptionAndBodyAndScreenshotFromURL(url string) (string, string, []byte, []byte, error) {
+func (h *Handlers) extractTitleAndDescriptionAndBodyAndScreenshotFromURL(url *url.URL) (string, string, []byte, []byte, error) {
 	response, err := chromedp.RunResponse(h.browserContext,
-		chromedp.Navigate(url),
+		chromedp.Navigate(url.String()),
 	)
 	if err != nil {
 		return "", "", nil, nil, fmt.Errorf("failed to fetch URL: %w", err)
