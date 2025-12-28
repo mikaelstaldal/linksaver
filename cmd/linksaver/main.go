@@ -29,10 +29,26 @@ func main() {
 	// Define command line flags
 	port := flag.Int("port", 8080, "port to listen on")
 	addr := flag.String("addr", "", "address to listen on")
+	dataDir := flag.String("data", "data", "directory to store data in")
 	flag.Parse()
 
 	if *port < 1 || *port > 65535 {
 		log.Fatalf("Invalid port number: %d. Must be between 1 and 65535", *port)
+	}
+
+	info, err := os.Stat(*dataDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			if err := os.MkdirAll(*dataDir, 0755); err != nil {
+				log.Fatalf("Could not create data directory: %s", *dataDir)
+			}
+		} else {
+			log.Fatalf("Failed to access data directory %s: %v", *dataDir, err)
+		}
+	} else {
+		if !info.IsDir() {
+			log.Fatalf("Data directory path is not a directory: %s", *dataDir)
+		}
 	}
 
 	var usernameBcryptHash []byte
@@ -58,13 +74,13 @@ func main() {
 	}
 
 	// Initialize database
-	database, err := db.InitDB(databaseName)
+	database, err := db.InitDB(filepath.Join(*dataDir, databaseName))
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
 
 	// Initialize handlers
-	h := web.NewHandlers(executableDir, database, screenshotsDir, usernameBcryptHash, passwordBcryptHash)
+	h := web.NewHandlers(executableDir, database, filepath.Join(*dataDir, screenshotsDir), usernameBcryptHash, passwordBcryptHash)
 
 	// Start server
 	serverAddr := fmt.Sprintf("%s:%d", *addr, *port)

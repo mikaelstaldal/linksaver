@@ -42,15 +42,15 @@ and store screenshots in `data/screenshots`.
    ```
 2. Run it without authentication, listing on localhost only:
    ```bash
-   ./linksaver -port 8080 -addr 127.0.0.1
+   ./linksaver -port 8080 -addr 127.0.0.1 -data data
    ```  
 3. Run it with HTTP basic authentication, listing externally:
    ```bash
-   BASIC_AUTH=$(htpasswd -nBC 12 my_username) ./linksaver -port 8080
+   BASIC_AUTH=$(htpasswd -nBC 12 my_username) ./linksaver -port 8080 -data data
    ```  
 Note: This is only secure if you also use https.   
 
-The application will store data in the current directory, using `./linksaver.sqlite` as the database file.
+The application will store data in the `./data` directory, using `./data/linksaver.sqlite` as the database file.
 
 You can use the `apparmor-profile` file as a template for an Apparmor profile, you need to substitute 
 `${PATH_TO_EXECUTABLE}` and `${PATH_TO_DATA}` with absolute paths. 

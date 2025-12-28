@@ -19,7 +19,7 @@ FROM chromedp/headless-shell:latest@sha256:24b6acd183756b9cdc9b2c951141cefbc645a
 
 ENV CHROMEDP="wss://localhost:9222"
 
-WORKDIR /data
+WORKDIR /
 
 COPY --from=builder /app/linksaver /linksaver/linkserver
 COPY run.sh /linksaver/run.sh
