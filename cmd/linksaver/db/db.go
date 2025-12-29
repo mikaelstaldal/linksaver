@@ -5,6 +5,8 @@ import (
 	"errors"
 	"time"
 
+	"fmt"
+
 	"modernc.org/sqlite"
 	sqlite3 "modernc.org/sqlite/lib"
 )
@@ -27,8 +29,8 @@ type DB struct {
 }
 
 // InitDB initializes the database.
-func InitDB(dataSourceName string) (*DB, error) {
-	db, err := sql.Open("sqlite", dataSourceName)
+func InitDB(databaseFile string) (*DB, error) {
+	db, err := sql.Open("sqlite", databaseFile)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +76,29 @@ func InitDB(dataSourceName string) (*DB, error) {
 		return nil, err
 	}
 
+	if isReadOnly(db) {
+		return nil, fmt.Errorf("database is read-only")
+	}
+
 	return &DB{db}, nil
+}
+
+func isReadOnly(db *sql.DB) bool {
+	tx, err := db.Begin()
+	if err != nil {
+		return true
+	}
+
+	_, err = tx.Exec("INSERT INTO links (url, title, description) VALUES (?, ?, ?)", "", "", "")
+	if err != nil {
+		return true
+	}
+
+	defer func(tx *sql.Tx) {
+		_ = tx.Rollback()
+	}(tx)
+
+	return false
 }
 
 // GetAllLinks returns all links from the database.

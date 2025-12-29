@@ -50,6 +50,24 @@ func main() {
 			log.Fatalf("Data directory path is not a directory: %s", *dataDir)
 		}
 	}
+	databaseFile := filepath.Join(*dataDir, databaseName)
+
+	info, err = os.Stat(databaseFile)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			log.Fatalf("Failed to access database file %s: %v", databaseFile, err)
+		}
+	} else {
+		if !info.Mode().IsRegular() {
+			log.Fatalf("Database file is not a regular file: %s", databaseFile)
+		}
+	}
+
+	// Initialize database
+	database, err := db.InitDB(databaseFile)
+	if err != nil {
+		log.Fatalf("Failed to initialize database: %v", err)
+	}
 
 	var usernameBcryptHash []byte
 	var passwordBcryptHash []byte
@@ -71,12 +89,6 @@ func main() {
 		}
 
 		log.Println("Using HTTP basic authentication")
-	}
-
-	// Initialize database
-	database, err := db.InitDB(filepath.Join(*dataDir, databaseName))
-	if err != nil {
-		log.Fatalf("Failed to initialize database: %v", err)
 	}
 
 	// Initialize handlers
