@@ -479,11 +479,11 @@ func Test_extractTitleAndDescriptionAndBodyFromURL(t *testing.T) {
 			wantErr:      false,
 		},
 		{
-			name:         "PDF content",
-			contentType:  "application/pdf",
+			name:         "Other content",
+			contentType:  "image/jpeg",
 			returnedBody: []byte("binary data"),
 			title:        "server.URL",
-			description:  "application/pdf",
+			description:  "image/jpeg",
 			body:         nil,
 			wantErr:      false,
 		},
@@ -607,6 +607,42 @@ func Test_extractTitleFromURL(t *testing.T) {
 				if title != tt.expected {
 					t.Errorf("extractTitleFromURL() got = %v, want %v", title, tt.expected)
 				}
+			}
+		})
+	}
+}
+
+func Test_extractTitleAndDescriptionFromPdf(t *testing.T) {
+	handlers := newHandlers("../../..", nil, "", nil, nil, true)
+
+	tests := []struct {
+		name        string
+		pdfText     []byte
+		title       string
+		description string
+	}{
+		{
+			name:        "basic",
+			pdfText:     []byte("the title\nthe description\nsome other text"),
+			title:       "the title",
+			description: "the description",
+		},
+		{
+			name:        "messy",
+			pdfText:     []byte("\n the title\n\nthe description \nsome other text\n...\n"),
+			title:       "the title",
+			description: "the description",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			title, description := handlers.extractTitleAndDescriptionFromPdf(tt.pdfText)
+			if title != tt.title {
+				t.Errorf("extractTitleAndDescriptionFromPdf() got title = '%v', want '%v'", title, tt.title)
+			}
+			if description != tt.description {
+				t.Errorf("extractTitleAndDescriptionFromPdf() got description = '%v', want '%v'", description, tt.description)
 			}
 		})
 	}

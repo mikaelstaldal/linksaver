@@ -24,6 +24,7 @@ import (
 
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
+	"github.com/ledongthuc/pdf"
 	"github.com/mikaelstaldal/linksaver/cmd/linksaver/db"
 	"github.com/mikaelstaldal/linksaver/ui"
 	"golang.org/x/net/html"
@@ -332,52 +333,65 @@ func (h *Handlers) extractTitleAndDescriptionAndBodyFromURL(url *url.URL) (strin
 	}
 
 	contentType := resp.Header.Get("Content-Type")
-	if !strings.HasPrefix(strings.ToLower(contentType), "text/html") && !strings.HasPrefix(strings.ToLower(contentType), "application/xhtml+xml") {
+	if strings.HasPrefix(strings.ToLower(contentType), "text/html") || strings.HasPrefix(strings.ToLower(contentType), "application/xhtml+xml") {
+		doc, err := html.Parse(bytes.NewReader(responseBody))
+		if err != nil {
+			return "", "", nil, fmt.Errorf("failed to parse HTML: %w", err)
+		}
+
+		title := strings.TrimSpace(extractTitleFromHtml(doc))
+		if title == "" {
+			return "", "", nil, fmt.Errorf("no title found in HTML")
+		}
+
+		description := strings.TrimSpace(extractDescriptionFromHtml(doc))
+
+		if len(title) > maxTitleLength {
+			title = title[:maxTitleLength] + "..."
+		}
+
+		if len(description) > maxDescriptionLength {
+			description = description[:maxDescriptionLength] + "..."
+		}
+
+		bodyIndex := bytes.Index(responseBody, []byte("<body>"))
+		if bodyIndex > 0 {
+			responseBody = responseBody[bodyIndex:]
+		}
+
+		return title, description, responseBody, nil
+	} else if strings.ToLower(contentType) == "application/pdf" {
+		r, err := pdf.NewReader(bytes.NewReader(responseBody), int64(len(responseBody)))
+		if err != nil {
+			return "", "", nil, fmt.Errorf("failed to open PDF: %w", err)
+		}
+
+		b, err := r.GetPlainText()
+		if err != nil {
+			return "", "", nil, fmt.Errorf("failed to parse PDF: %w", err)
+		}
+		pdfText, err := io.ReadAll(io.LimitReader(b, maxBodyLength))
+		_, _ = io.Copy(io.Discard, b)
+		if err != nil {
+			return "", "", nil, fmt.Errorf("failed to read PDF: %w", err)
+		}
+
+		title, description := h.extractTitleAndDescriptionFromPdf(pdfText)
+		if len(title) > maxTitleLength {
+			title = title[:maxTitleLength] + "..."
+		}
+		if len(description) > maxDescriptionLength {
+			description = description[:maxDescriptionLength] + "..."
+		}
+
+		return title, description, pdfText, nil
+	} else {
 		return h.extractTitleFromURL(url), contentType, nil, nil
 	}
-
-	doc, err := html.Parse(bytes.NewReader(responseBody))
-	if err != nil {
-		return "", "", nil, fmt.Errorf("failed to parse HTML: %w", err)
-	}
-
-	title := strings.TrimSpace(extractTitle(doc))
-	if title == "" {
-		return "", "", nil, fmt.Errorf("no title found in HTML")
-	}
-
-	description := strings.TrimSpace(extractDescription(doc))
-
-	if len(title) > maxTitleLength {
-		title = title[:maxTitleLength] + "..."
-	}
-
-	if len(description) > maxDescriptionLength {
-		description = description[:maxDescriptionLength] + "..."
-	}
-
-	bodyIndex := bytes.Index(responseBody, []byte("<body>"))
-	if bodyIndex > 0 {
-		responseBody = responseBody[bodyIndex:]
-	}
-
-	return title, description, responseBody, nil
 }
 
-func (h *Handlers) extractTitleFromURL(url *url.URL) string {
-	path := strings.TrimRight(url.Path, "/")
-	lastSegment := filepath.Base(path)
-	var title string
-	if lastSegment != "" && lastSegment != "." && lastSegment != "/" {
-		title = lastSegment
-	} else {
-		title = url.Host
-	}
-	return title
-}
-
-// extractTitle recursively searches for the "title" element in the HTML tree.
-func extractTitle(n *html.Node) string {
+// extractTitleFromHtml recursively searches for the "title" element in the HTML tree.
+func extractTitleFromHtml(n *html.Node) string {
 	if n.Type == html.ElementNode && n.Data == "title" {
 		// Found the title element, extract its text content
 		return extractTextContent(n)
@@ -385,7 +399,7 @@ func extractTitle(n *html.Node) string {
 
 	// Recursively search child nodes
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		if title := extractTitle(c); title != "" {
+		if title := extractTitleFromHtml(c); title != "" {
 			return title
 		}
 	}
@@ -408,15 +422,15 @@ func extractTextContent(n *html.Node) string {
 	return text.String()
 }
 
-// extractDescription recursively searches for the "meta" element in the HTML tree.
-func extractDescription(n *html.Node) string {
+// extractDescriptionFromHtml recursively searches for the "meta" element in the HTML tree.
+func extractDescriptionFromHtml(n *html.Node) string {
 	if n.Type == html.ElementNode && n.Data == "meta" && extractAttribute(n, "name") == "description" {
 		return extractAttribute(n, "content")
 	}
 
 	// Recursively search child nodes
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		if title := extractDescription(c); title != "" {
+		if title := extractDescriptionFromHtml(c); title != "" {
 			return title
 		}
 	}
@@ -431,6 +445,52 @@ func extractAttribute(n *html.Node, key string) string {
 		}
 	}
 	return ""
+}
+
+func (h *Handlers) extractTitleAndDescriptionFromPdf(pdfText []byte) (string, string) {
+	// Skip leading whitespace and newlines
+	start := 0
+	for start < len(pdfText) && (pdfText[start] == ' ' || pdfText[start] == '\t' || pdfText[start] == '\n' || pdfText[start] == '\r') {
+		start++
+	}
+
+	if start >= len(pdfText) {
+		return "", ""
+	}
+
+	// Find the end of the first line
+	end := start
+	for end < len(pdfText) && pdfText[end] != '\n' && pdfText[end] != '\r' {
+		end++
+	}
+	title := string(pdfText[start:end])
+
+	// Skip whitespace and newlines
+	start = end
+	for start < len(pdfText) && (pdfText[start] == ' ' || pdfText[start] == '\t' || pdfText[start] == '\n' || pdfText[start] == '\r') {
+		start++
+	}
+
+	// Find the end of the second line
+	end = start
+	for end < len(pdfText) && pdfText[end] != '\n' && pdfText[end] != '\r' {
+		end++
+	}
+	description := string(pdfText[start:end])
+
+	return strings.TrimSpace(title), strings.TrimSpace(description)
+}
+
+func (h *Handlers) extractTitleFromURL(url *url.URL) string {
+	path := strings.TrimRight(url.Path, "/")
+	lastSegment := filepath.Base(path)
+	var title string
+	if lastSegment != "" && lastSegment != "." && lastSegment != "/" {
+		title = lastSegment
+	} else {
+		title = url.Host
+	}
+	return title
 }
 
 func (h *Handlers) extractTitleAndDescriptionAndBodyAndScreenshotFromURL(url *url.URL) (string, string, []byte, []byte, error) {

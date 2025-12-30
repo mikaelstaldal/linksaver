@@ -5,6 +5,7 @@ go 1.25
 require (
 	github.com/chromedp/cdproto v0.0.0-20250803210736-d308e07a266d
 	github.com/chromedp/chromedp v0.14.2
+	github.com/ledongthuc/pdf v0.0.0-20250511090121-5959a4027728
 	golang.org/x/crypto v0.45.0
 	golang.org/x/net v0.47.0
 	modernc.org/sqlite v1.40.1
