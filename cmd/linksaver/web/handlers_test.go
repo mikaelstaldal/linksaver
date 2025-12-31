@@ -479,6 +479,15 @@ func Test_extractTitleAndDescriptionAndBodyFromURL(t *testing.T) {
 			wantErr:      false,
 		},
 		{
+			name:         "Invalid PDF",
+			contentType:  "application/pdf",
+			returnedBody: []byte("invalid pdf"),
+			title:        "server.URL",
+			description:  "PDF",
+			body:         nil,
+			wantErr:      false,
+		},
+		{
 			name:         "Other content",
 			contentType:  "image/jpeg",
 			returnedBody: []byte("binary data"),

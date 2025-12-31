@@ -336,7 +336,7 @@ func (h *Handlers) extractTitleAndDescriptionAndBodyFromURL(url *url.URL) (strin
 	if strings.HasPrefix(strings.ToLower(contentType), "text/html") || strings.HasPrefix(strings.ToLower(contentType), "application/xhtml+xml") {
 		return h.extractTitleAndDescriptionAndBodyFromHtml(responseBody)
 	} else if strings.ToLower(contentType) == "application/pdf" {
-		return h.extractTitleAndDescriptionAndBodyFromPdf(responseBody)
+		return h.extractTitleAndDescriptionAndBodyFromPdf(url, responseBody)
 	} else {
 		return h.extractTitleFromURL(url), contentType, nil, nil
 	}
@@ -428,20 +428,20 @@ func extractAttribute(n *html.Node, key string) string {
 	return ""
 }
 
-func (h *Handlers) extractTitleAndDescriptionAndBodyFromPdf(responseBody []byte) (string, string, []byte, error) {
+func (h *Handlers) extractTitleAndDescriptionAndBodyFromPdf(url *url.URL, responseBody []byte) (string, string, []byte, error) {
 	r, err := pdf.NewReader(bytes.NewReader(responseBody), int64(len(responseBody)))
 	if err != nil {
-		return "", "", nil, fmt.Errorf("failed to open PDF: %w", err)
+		return h.extractTitleFromURL(url), "PDF", nil, nil
 	}
 
 	b, err := r.GetPlainText()
 	if err != nil {
-		return "", "", nil, fmt.Errorf("failed to parse PDF: %w", err)
+		return h.extractTitleFromURL(url), "PDF", nil, nil
 	}
 	pdfText, err := io.ReadAll(io.LimitReader(b, maxBodyLength))
 	_, _ = io.Copy(io.Discard, b)
 	if err != nil {
-		return "", "", nil, fmt.Errorf("failed to read PDF: %w", err)
+		return h.extractTitleFromURL(url), "PDF", nil, nil
 	}
 
 	var title string
