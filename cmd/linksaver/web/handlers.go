@@ -334,60 +334,41 @@ func (h *Handlers) extractTitleAndDescriptionAndBodyFromURL(url *url.URL) (strin
 
 	contentType := resp.Header.Get("Content-Type")
 	if strings.HasPrefix(strings.ToLower(contentType), "text/html") || strings.HasPrefix(strings.ToLower(contentType), "application/xhtml+xml") {
-		doc, err := html.Parse(bytes.NewReader(responseBody))
-		if err != nil {
-			return "", "", nil, fmt.Errorf("failed to parse HTML: %w", err)
-		}
-
-		title := strings.TrimSpace(extractTitleFromHtml(doc))
-		if title == "" {
-			return "", "", nil, fmt.Errorf("no title found in HTML")
-		}
-
-		description := strings.TrimSpace(extractDescriptionFromHtml(doc))
-
-		if len(title) > maxTitleLength {
-			title = title[:maxTitleLength] + "..."
-		}
-
-		if len(description) > maxDescriptionLength {
-			description = description[:maxDescriptionLength] + "..."
-		}
-
-		bodyIndex := bytes.Index(responseBody, []byte("<body>"))
-		if bodyIndex > 0 {
-			responseBody = responseBody[bodyIndex:]
-		}
-
-		return title, description, responseBody, nil
+		return h.extractTitleAndDescriptionAndBodyFromHtml(responseBody)
 	} else if strings.ToLower(contentType) == "application/pdf" {
-		r, err := pdf.NewReader(bytes.NewReader(responseBody), int64(len(responseBody)))
-		if err != nil {
-			return "", "", nil, fmt.Errorf("failed to open PDF: %w", err)
-		}
-
-		b, err := r.GetPlainText()
-		if err != nil {
-			return "", "", nil, fmt.Errorf("failed to parse PDF: %w", err)
-		}
-		pdfText, err := io.ReadAll(io.LimitReader(b, maxBodyLength))
-		_, _ = io.Copy(io.Discard, b)
-		if err != nil {
-			return "", "", nil, fmt.Errorf("failed to read PDF: %w", err)
-		}
-
-		title, description := h.extractTitleAndDescriptionFromPdf(pdfText)
-		if len(title) > maxTitleLength {
-			title = title[:maxTitleLength] + "..."
-		}
-		if len(description) > maxDescriptionLength {
-			description = description[:maxDescriptionLength] + "..."
-		}
-
-		return title, description, pdfText, nil
+		return h.extractTitleAndDescriptionAndBodyFromPdf(responseBody)
 	} else {
 		return h.extractTitleFromURL(url), contentType, nil, nil
 	}
+}
+
+func (h *Handlers) extractTitleAndDescriptionAndBodyFromHtml(responseBody []byte) (string, string, []byte, error) {
+	doc, err := html.Parse(bytes.NewReader(responseBody))
+	if err != nil {
+		return "", "", nil, fmt.Errorf("failed to parse HTML: %w", err)
+	}
+
+	title := strings.TrimSpace(extractTitleFromHtml(doc))
+	if title == "" {
+		return "", "", nil, fmt.Errorf("no title found in HTML")
+	}
+
+	description := strings.TrimSpace(extractDescriptionFromHtml(doc))
+
+	if len(title) > maxTitleLength {
+		title = title[:maxTitleLength] + "..."
+	}
+
+	if len(description) > maxDescriptionLength {
+		description = description[:maxDescriptionLength] + "..."
+	}
+
+	bodyIndex := bytes.Index(responseBody, []byte("<body>"))
+	if bodyIndex > 0 {
+		responseBody = responseBody[bodyIndex:]
+	}
+
+	return title, description, responseBody, nil
 }
 
 // extractTitleFromHtml recursively searches for the "title" element in the HTML tree.
@@ -445,6 +426,33 @@ func extractAttribute(n *html.Node, key string) string {
 		}
 	}
 	return ""
+}
+
+func (h *Handlers) extractTitleAndDescriptionAndBodyFromPdf(responseBody []byte) (string, string, []byte, error) {
+	r, err := pdf.NewReader(bytes.NewReader(responseBody), int64(len(responseBody)))
+	if err != nil {
+		return "", "", nil, fmt.Errorf("failed to open PDF: %w", err)
+	}
+
+	b, err := r.GetPlainText()
+	if err != nil {
+		return "", "", nil, fmt.Errorf("failed to parse PDF: %w", err)
+	}
+	pdfText, err := io.ReadAll(io.LimitReader(b, maxBodyLength))
+	_, _ = io.Copy(io.Discard, b)
+	if err != nil {
+		return "", "", nil, fmt.Errorf("failed to read PDF: %w", err)
+	}
+
+	title, description := h.extractTitleAndDescriptionFromPdf(pdfText)
+	if len(title) > maxTitleLength {
+		title = title[:maxTitleLength] + "..."
+	}
+	if len(description) > maxDescriptionLength {
+		description = description[:maxDescriptionLength] + "..."
+	}
+
+	return title, description, pdfText, nil
 }
 
 func (h *Handlers) extractTitleAndDescriptionFromPdf(pdfText []byte) (string, string) {
