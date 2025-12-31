@@ -444,49 +444,37 @@ func (h *Handlers) extractTitleAndDescriptionAndBodyFromPdf(responseBody []byte)
 		return "", "", nil, fmt.Errorf("failed to read PDF: %w", err)
 	}
 
-	title, description := h.extractTitleAndDescriptionFromPdf(pdfText)
-	if len(title) > maxTitleLength {
-		title = title[:maxTitleLength] + "..."
-	}
-	if len(description) > maxDescriptionLength {
-		description = description[:maxDescriptionLength] + "..."
+	var title string
+	var description string
+	totalPage := r.NumPage()
+pages:
+	for pageIndex := 1; pageIndex <= totalPage; pageIndex++ {
+		p := r.Page(pageIndex)
+		if p.V.IsNull() || p.V.Key("Contents").Kind() == pdf.Null {
+			continue
+		}
+
+		rows, _ := p.GetTextByRow()
+		for _, row := range rows {
+			var sb strings.Builder
+			for _, word := range row.Content {
+				sb.WriteString(word.S)
+			}
+			rowText := strings.TrimSpace(sb.String())
+			if rowText == "" {
+				continue
+			}
+			if title == "" {
+				title = rowText
+			} else if description == "" {
+				description = rowText
+			} else {
+				break pages
+			}
+		}
 	}
 
 	return title, description, pdfText, nil
-}
-
-func (h *Handlers) extractTitleAndDescriptionFromPdf(pdfText []byte) (string, string) {
-	// Skip leading whitespace and newlines
-	start := 0
-	for start < len(pdfText) && (pdfText[start] == ' ' || pdfText[start] == '\t' || pdfText[start] == '\n' || pdfText[start] == '\r') {
-		start++
-	}
-
-	if start >= len(pdfText) {
-		return "", ""
-	}
-
-	// Find the end of the first line
-	end := start
-	for end < len(pdfText) && pdfText[end] != '\n' && pdfText[end] != '\r' {
-		end++
-	}
-	title := string(pdfText[start:end])
-
-	// Skip whitespace and newlines
-	start = end
-	for start < len(pdfText) && (pdfText[start] == ' ' || pdfText[start] == '\t' || pdfText[start] == '\n' || pdfText[start] == '\r') {
-		start++
-	}
-
-	// Find the end of the second line
-	end = start
-	for end < len(pdfText) && pdfText[end] != '\n' && pdfText[end] != '\r' {
-		end++
-	}
-	description := string(pdfText[start:end])
-
-	return strings.TrimSpace(title), strings.TrimSpace(description)
 }
 
 func (h *Handlers) extractTitleFromURL(url *url.URL) string {
