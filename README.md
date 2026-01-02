@@ -26,7 +26,8 @@ You can also save short notes which are not connected to any particular URL alon
    ```
 3. Run the container with HTTP basic authentication, listing externally:
    ```bash
-   docker run --mount "type=bind,src=$(pwd)/data,dst=/data" --cap-drop ALL --security-opt no-new-privileges -p 8080:8080 -e BASIC_AUTH=$(htpasswd -nBC 12 my_username) linksaver
+   htpasswd -cBC 12 pwfile my_username
+   docker run --mount "type=bind,src=$(pwd)/pwfile,dst=/pwfile" --mount "type=bind,src=$(pwd)/data,dst=/data" --cap-drop ALL --security-opt no-new-privileges -p 8080:8080 linksaver -basic-auth-file /pwfile
    ```
 Note: This is only secure if you also use https.   
 
@@ -46,7 +47,8 @@ and store screenshots in `data/screenshots`.
    ```  
 3. Run it with HTTP basic authentication, listing externally:
    ```bash
-   BASIC_AUTH=$(htpasswd -nBC 12 my_username) ./linksaver -port 8080 -data data
+   htpasswd -cBC 12 pwfile my_username
+   ./linksaver -port 8080 -data data -basic-auth-file pwfile
    ```  
 Note: This is only secure if you also use https.   
 

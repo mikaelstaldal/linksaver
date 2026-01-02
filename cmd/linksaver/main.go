@@ -30,6 +30,7 @@ func main() {
 	port := flag.Int("port", 8080, "port to listen on")
 	addr := flag.String("addr", "", "address to listen on")
 	dataDir := flag.String("data", "data", "directory to store data in")
+	basicAuth := flag.String("basic-auth-file", "", "Use HTTP basic auth with username and password from given file in htpasswd format")
 	flag.Parse()
 
 	if *port < 1 || *port > 65535 {
@@ -71,16 +72,21 @@ func main() {
 
 	var usernameBcryptHash []byte
 	var passwordBcryptHash []byte
-	basicAuth := os.Getenv("BASIC_AUTH")
-	if basicAuth != "" {
-		username, passwordBcryptHashStr, ok := strings.Cut(basicAuth, ":")
+	if *basicAuth != "" {
+		basicAuthContent, err := os.ReadFile(*basicAuth)
+		if err != nil {
+			log.Fatalf("Failed to read basic auth file '%s': %v", *basicAuth, err)
+		}
+		basicAuthStr := strings.TrimSpace(string(basicAuthContent))
+
+		username, passwordBcryptHashStr, ok := strings.Cut(basicAuthStr, ":")
 		if !ok {
-			log.Fatalf("Invalid BASIC_AUTH value '%s'", basicAuth)
+			log.Fatalf("Invalid basic auth value '%s'", basicAuthStr)
 		}
 		passwordBcryptHash = []byte(passwordBcryptHashStr)
-		_, err := bcrypt.Cost(passwordBcryptHash)
+		_, err = bcrypt.Cost(passwordBcryptHash)
 		if err != nil {
-			log.Fatalf("Invalid BASIC_AUTH bcrypt hash '%s': %v", passwordBcryptHashStr, err)
+			log.Fatalf("Invalid basic auth bcrypt hash '%s': %v", passwordBcryptHashStr, err)
 		}
 
 		usernameBcryptHash, err = bcrypt.GenerateFromPassword([]byte(username), bcrypt.MinCost)
