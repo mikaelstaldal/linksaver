@@ -7,15 +7,18 @@ profile linksaver ${PATH_TO_EXECUTABLE}/linksaver {
     /sys/kernel/mm/transparent_hugepage/hpage_pmd_size r,
 
     /etc/** r,
-    @{PROC}/sys/net/** r,
+    @{PROC}/** r,
+    /run/user/@{pid}/** r,
     /run/systemd/resolve/** r,
     /run/resolvconf/resolv.conf r,
     /usr/share/ca-certificates/** r,
+    /usr/share/mime/** r,
     network,
 
     signal (receive) set=(int,term,kill),
 
     ${PATH_TO_EXECUTABLE}/linksaver rm,
 
-    ${PATH_TO_DATA}/linksaver.sqlite* rwk,
+    ${PATH_TO_DATA}/ r,
+    ${PATH_TO_DATA}/* rwk,
 }
