@@ -17,7 +17,9 @@ func TestDB(t *testing.T) {
 	}
 
 	t.Cleanup(func() {
-		_ = database.Close()
+		if database != nil {
+			_ = database.Close()
+		}
 		_ = os.Remove(dbFile)
 	})
 
@@ -181,5 +183,24 @@ func TestDB(t *testing.T) {
 	}
 	if len(links) != 2 {
 		t.Fatalf("Got %d links after deletion, expected 2", len(links))
+	}
+
+	// Close the database
+	err = database.Close()
+	if err != nil {
+		t.Fatalf("Failed to close database %v", err)
+	}
+
+	// Make the database file read-only
+	err = os.Chmod(dbFile, 0400)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Attempt to open the database again - should fail
+	database, err = InitDB(dbFile)
+	if err == nil {
+		_ = database.Close()
+		t.Fatalf("Unable to detect read-only database")
 	}
 }

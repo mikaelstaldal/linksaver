@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"time"
@@ -76,29 +77,38 @@ func InitDB(databaseFile string) (*DB, error) {
 		return nil, err
 	}
 
-	if isReadOnly(db) {
-		return nil, fmt.Errorf("database is read-only")
+	err = ensureWritable(db)
+	if err != nil {
+		return nil, err
 	}
 
 	return &DB{db}, nil
 }
 
-func isReadOnly(db *sql.DB) bool {
-	tx, err := db.Begin()
+func ensureWritable(db *sql.DB) error {
+	conn, err := db.Conn(context.Background())
 	if err != nil {
-		return true
+		return err
 	}
+	defer func(conn *sql.Conn) {
+		_ = conn.Close()
+	}(conn)
 
-	_, err = tx.Exec("INSERT INTO links (url, title, description) VALUES (?, ?, ?)", "", "", "")
-	if err != nil {
-		return true
-	}
+	return conn.Raw(func(c any) error {
+		if d, ok := c.(interface{ IsReadOnly(string) (bool, error) }); ok {
+			// Use "main" for the primary database schema
+			isReadOnly, err := d.IsReadOnly("main")
+			if err != nil {
+				return err
+			}
+			if isReadOnly {
+				return fmt.Errorf("database is read-only")
+			}
+			return nil
+		}
 
-	defer func(tx *sql.Tx) {
-		_ = tx.Rollback()
-	}(tx)
-
-	return false
+		return fmt.Errorf("cannot check if database is read-only")
+	})
 }
 
 // GetAllLinks returns all links from the database.
