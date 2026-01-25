@@ -1,9 +1,15 @@
 {{define "link-with-screenshot"}}
 <div class="link-item box info bg">
     <div class="link-header">
-        <h5 class="link-title list-of-links"><a href="{{.URL}}" target="_blank"
+        <h5 class="link-title list-of-links">
+            {{if not (isNote .URL)}}
+            <a href="{{.URL}}" target="_blank"
                class="inline-block text-truncate width:100%"
-               title="{{or .Description .Title}}">{{.Title}}</a></h5>
+               title="{{or .Description .Title}}">{{.Title}}</a>
+            {{else}}
+                {{.Title}}
+            {{end}}
+        </h5>
         <div class="link-edit" hidden>
             <form hx-patch="./{{.ID}}" hx-swap="outerHTML" hx-target="closest .link-item"
                   hx-disabled-elt="find button"
@@ -33,9 +39,12 @@
             </form>
         </div>
 
-        <div class="list-of-links"><a href="{{.URL}}" target="_blank"
-                class="inline-block text-truncate width:100%"
-                title="{{.URL}}">{{.URL}}</a>
+        <div class="list-of-links">
+            {{if not (isNote .URL)}}
+                <a href="{{.URL}}" target="_blank"
+                    class="inline-block text-truncate width:100%"
+                    title="{{.URL}}">{{.URL}}</a>
+            {{end}}
         </div>
         <div class="margin-block-end">
             <button _="

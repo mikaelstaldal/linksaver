@@ -1,9 +1,15 @@
 {{define "link-without-screenshot"}}
 <div class="link-item link-header box info bg f-col">
 
-        <h5 class="link-title list-of-links"><a href="{{.URL}}" target="_blank"
+        <h5 class="link-title list-of-links">
+            {{if not (isNote .URL)}}
+            <a href="{{.URL}}" target="_blank"
                class="inline-block text-truncate width:100%"
-               title="{{.Title}}">{{.Title}}</a></h5>
+               title="{{.Title}}">{{.Title}}</a>
+            {{else}}
+                {{.Title}}
+            {{end}}
+        </h5>
         <p class="link-description">{{.Description}}</p>
         <div class="link-edit" hidden>
             <form hx-patch="./{{.ID}}" hx-swap="outerHTML" hx-target="closest .link-item"
