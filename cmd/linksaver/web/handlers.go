@@ -585,25 +585,7 @@ func (h *Handlers) GetLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dbLink, err := h.database.GetLink(id)
-	if err != nil {
-		if errors.Is(err, db.ErrNotFound) {
-			sendError(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
-		} else {
-			sendError(w, fmt.Sprintf("Failed to get link: %v\n", err), http.StatusInternalServerError)
-		}
-		return
-	}
-
-	if wantJson(r) {
-		h.renderJson(w, dbLink, http.StatusOK)
-	} else {
-		if h.browserContext != nil {
-			h.render(w, "link-with-screenshot", dbLink, http.StatusOK)
-		} else {
-			h.render(w, "link-without-screenshot", dbLink, http.StatusOK)
-		}
-	}
+	h.getLink(w, r, id)
 }
 
 // EditLink handles the request to edit a link.
@@ -636,6 +618,10 @@ func (h *Handlers) EditLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.getLink(w, r, id)
+}
+
+func (h *Handlers) getLink(w http.ResponseWriter, r *http.Request, id int64) {
 	dbLink, err := h.database.GetLink(id)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
@@ -646,10 +632,14 @@ func (h *Handlers) EditLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if h.browserContext != nil {
-		h.render(w, "link-with-screenshot", dbLink, http.StatusOK)
+	if wantJson(r) {
+		h.renderJson(w, dbLink, http.StatusOK)
 	} else {
-		h.render(w, "link-without-screenshot", dbLink, http.StatusOK)
+		if h.browserContext != nil {
+			h.render(w, "link-with-screenshot", dbLink, http.StatusOK)
+		} else {
+			h.render(w, "link-without-screenshot", dbLink, http.StatusOK)
+		}
 	}
 }
 
@@ -735,6 +725,7 @@ func (h *Handlers) render(w http.ResponseWriter, name string, data any, status i
 		sendError(w, fmt.Sprintf("Failed to render %s: %v\n", name, err), http.StatusInternalServerError)
 		return
 	}
+	w.Header().Set("Content-Type", "text/html")
 	w.WriteHeader(status)
 	_, _ = buf.WriteTo(w)
 }

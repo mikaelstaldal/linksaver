@@ -120,6 +120,10 @@ func TestHandlers(t *testing.T) {
 			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
 		}
 
+		if contentType := response.Header.Get("Content-Type"); !strings.HasPrefix(contentType, "text/html") {
+			t.Errorf("Wrong Content-Type: %s", contentType)
+		}
+
 		if !bytes.Contains(body, []byte(mockServer.URL)) {
 			t.Errorf("Response doesn't contain the expected link URL\n%s", string(body))
 		}
@@ -175,6 +179,10 @@ func TestHandlers(t *testing.T) {
 			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
 		}
 
+		if contentType := response.Header.Get("Content-Type"); !strings.HasPrefix(contentType, "text/html") {
+			t.Errorf("Wrong Content-Type: %s", contentType)
+		}
+
 		if !bytes.Contains(body, []byte(mockServer.URL)) {
 			t.Errorf("Response doesn't contain the expected link URL\n%s", string(body))
 		}
@@ -196,6 +204,10 @@ func TestHandlers(t *testing.T) {
 
 		if status := response.StatusCode; status != http.StatusOK {
 			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
+		}
+
+		if contentType := response.Header.Get("Content-Type"); !strings.HasPrefix(contentType, "text/html") {
+			t.Errorf("Wrong Content-Type: %s", contentType)
 		}
 
 		if !bytes.Contains(body, []byte(mockServer.URL)) {
@@ -268,8 +280,51 @@ func TestHandlers(t *testing.T) {
 			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
 		}
 
+		if contentType := response.Header.Get("Content-Type"); !strings.HasPrefix(contentType, "text/html") {
+			t.Errorf("Wrong Content-Type: %s", contentType)
+		}
+
 		if !bytes.Contains(body, []byte("Updated Title")) {
 			t.Errorf("Response doesn't contain the updated title\n%s", string(body))
+		}
+
+		// Verify the link was actually updated in the database
+		updatedLink, err := database.GetLink(linkId)
+		if err != nil {
+			t.Fatalf("Failed to get updated link: %v", err)
+		}
+		if updatedLink.Title != "Updated Title" {
+			t.Errorf("Link title was not updated in database: got %v want %v", updatedLink.Title, "Updated Title")
+		}
+	})
+
+	t.Run("patch link success JSON", func(t *testing.T) {
+		req := httptest.NewRequest("PATCH", fmt.Sprintf("/%d", linkId), strings.NewReader("title=Updated Title"))
+		req.Header.Set("Accept", "application/json")
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.SetBasicAuth(testUsername, testPassword)
+		response, body := testRequest(t, handler, req)
+
+		if status := response.StatusCode; status != http.StatusOK {
+			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
+		}
+
+		if contentType := response.Header.Get("Content-Type"); !strings.HasPrefix(contentType, "application/json") {
+			t.Errorf("Wrong Content-Type: %s", contentType)
+		}
+
+		var data db.Link
+		if err := json.Unmarshal(body, &data); err != nil {
+			t.Errorf("Response doesn't contain the expected JSON\n%s", string(body))
+		}
+		if data.URL != mockServer.URL {
+			t.Errorf("Response doesn't contain the expected link URL\n%s", data.URL)
+		}
+		if data.Title != "Updated Title" {
+			t.Errorf("Response doesn't contain the expected link title\n%s", data.Title)
+		}
+		if data.Description != testDescription {
+			t.Errorf("Response doesn't contain the expected link description\n%s", data.Description)
 		}
 
 		// Verify the link was actually updated in the database
@@ -396,6 +451,10 @@ func TestHandlers(t *testing.T) {
 
 		if status := response.StatusCode; status != http.StatusOK {
 			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
+		}
+
+		if contentType := response.Header.Get("Content-Type"); !strings.HasPrefix(contentType, "text/html") {
+			t.Errorf("Wrong Content-Type: %s", contentType)
 		}
 
 		if !bytes.Contains(body, []byte("NoteTitle")) {
