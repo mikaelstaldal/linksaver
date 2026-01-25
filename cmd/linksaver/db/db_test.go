@@ -152,7 +152,7 @@ func TestDB(t *testing.T) {
 	}
 
 	// Test updating a link
-	err = database.UpdateLink(id, "Updated title")
+	err = database.UpdateLink(id, "Updated title", "Updated description")
 	if err != nil {
 		t.Fatalf("Failed to update link: %v", err)
 	}
@@ -162,6 +162,9 @@ func TestDB(t *testing.T) {
 	}
 	if link.Title != "Updated title" {
 		t.Errorf("Got title '%s', expected '%s'", link.Title, "Updated title")
+	}
+	if link.Description != "Updated description" {
+		t.Errorf("Got description '%s', expected '%s'", link.Description, "Updated description")
 	}
 
 	// Test deleting a link

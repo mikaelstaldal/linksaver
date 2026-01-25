@@ -271,7 +271,7 @@ func TestHandlers(t *testing.T) {
 	})
 
 	t.Run("patch link success", func(t *testing.T) {
-		req := httptest.NewRequest("PATCH", fmt.Sprintf("/%d", linkId), strings.NewReader("title=Updated Title"))
+		req := httptest.NewRequest("PATCH", fmt.Sprintf("/%d", linkId), strings.NewReader("title=Updated Title&description=Updated Description"))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		req.SetBasicAuth(testUsername, testPassword)
 		response, body := testRequest(t, handler, req)
@@ -288,6 +288,10 @@ func TestHandlers(t *testing.T) {
 			t.Errorf("Response doesn't contain the updated title\n%s", string(body))
 		}
 
+		if !bytes.Contains(body, []byte("Updated Description")) {
+			t.Errorf("Response doesn't contain the updated description\n%s", string(body))
+		}
+
 		// Verify the link was actually updated in the database
 		updatedLink, err := database.GetLink(linkId)
 		if err != nil {
@@ -296,10 +300,13 @@ func TestHandlers(t *testing.T) {
 		if updatedLink.Title != "Updated Title" {
 			t.Errorf("Link title was not updated in database: got %v want %v", updatedLink.Title, "Updated Title")
 		}
+		if updatedLink.Description != "Updated Description" {
+			t.Errorf("Link description was not updated in database: got %v want %v", updatedLink.Description, "Updated Description")
+		}
 	})
 
 	t.Run("patch link success JSON", func(t *testing.T) {
-		req := httptest.NewRequest("PATCH", fmt.Sprintf("/%d", linkId), strings.NewReader("title=Updated Title"))
+		req := httptest.NewRequest("PATCH", fmt.Sprintf("/%d", linkId), strings.NewReader("title=Updated Title&description=Updated Description"))
 		req.Header.Set("Accept", "application/json")
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		req.SetBasicAuth(testUsername, testPassword)
@@ -323,7 +330,7 @@ func TestHandlers(t *testing.T) {
 		if data.Title != "Updated Title" {
 			t.Errorf("Response doesn't contain the expected link title\n%s", data.Title)
 		}
-		if data.Description != testDescription {
+		if data.Description != "Updated Description" {
 			t.Errorf("Response doesn't contain the expected link description\n%s", data.Description)
 		}
 
@@ -335,10 +342,13 @@ func TestHandlers(t *testing.T) {
 		if updatedLink.Title != "Updated Title" {
 			t.Errorf("Link title was not updated in database: got %v want %v", updatedLink.Title, "Updated Title")
 		}
+		if updatedLink.Description != "Updated Description" {
+			t.Errorf("Link description was not updated in database: got %v want %v", updatedLink.Description, "Updated Description")
+		}
 	})
 
 	t.Run("patch link invalid id", func(t *testing.T) {
-		req := httptest.NewRequest("PATCH", "/invalid", strings.NewReader("title=Updated Title"))
+		req := httptest.NewRequest("PATCH", "/invalid", strings.NewReader("title=Updated Title&description=Updated Description"))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		req.SetBasicAuth(testUsername, testPassword)
 		response, _ := testRequest(t, handler, req)
@@ -349,7 +359,7 @@ func TestHandlers(t *testing.T) {
 	})
 
 	t.Run("patch link not found", func(t *testing.T) {
-		req := httptest.NewRequest("PATCH", "/999", strings.NewReader("title=Updated Title"))
+		req := httptest.NewRequest("PATCH", "/999", strings.NewReader("title=Updated Title&description=Updated Description"))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		req.SetBasicAuth(testUsername, testPassword)
 		response, _ := testRequest(t, handler, req)
@@ -360,7 +370,29 @@ func TestHandlers(t *testing.T) {
 	})
 
 	t.Run("patch link missing title", func(t *testing.T) {
-		req := httptest.NewRequest("PATCH", fmt.Sprintf("/%d", linkId), strings.NewReader(""))
+		req := httptest.NewRequest("PATCH", fmt.Sprintf("/%d", linkId), strings.NewReader("description=Updated Description"))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.SetBasicAuth(testUsername, testPassword)
+		response, _ := testRequest(t, handler, req)
+
+		if status := response.StatusCode; status != http.StatusBadRequest {
+			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusBadRequest)
+		}
+	})
+
+	t.Run("patch link too long title", func(t *testing.T) {
+		req := httptest.NewRequest("PATCH", fmt.Sprintf("/%d", linkId), strings.NewReader("title="+strings.Repeat("a", maxTitleLength+1)))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.SetBasicAuth(testUsername, testPassword)
+		response, _ := testRequest(t, handler, req)
+
+		if status := response.StatusCode; status != http.StatusBadRequest {
+			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusBadRequest)
+		}
+	})
+
+	t.Run("patch link too long description", func(t *testing.T) {
+		req := httptest.NewRequest("PATCH", fmt.Sprintf("/%d", linkId), strings.NewReader("title=whatever&description="+strings.Repeat("b", maxDescriptionLength+1)))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		req.SetBasicAuth(testUsername, testPassword)
 		response, _ := testRequest(t, handler, req)

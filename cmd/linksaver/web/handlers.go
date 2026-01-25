@@ -607,8 +607,18 @@ func (h *Handlers) EditLink(w http.ResponseWriter, r *http.Request) {
 		sendError(w, "title is required", http.StatusBadRequest)
 		return
 	}
+	if len(title) > maxTitleLength {
+		sendError(w, fmt.Sprintf("title is too long, max %d characters allowed", maxTitleLength), http.StatusBadRequest)
+		return
+	}
 
-	err = h.database.UpdateLink(id, title)
+	description := r.PostForm.Get("description")
+	if len(description) > maxDescriptionLength {
+		sendError(w, fmt.Sprintf("description is too long, max %d characters allowed", maxDescriptionLength), http.StatusBadRequest)
+		return
+	}
+
+	err = h.database.UpdateLink(id, title, description)
 	if err != nil {
 		if errors.Is(err, db.ErrNotFound) {
 			sendError(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)

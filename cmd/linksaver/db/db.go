@@ -231,8 +231,8 @@ func (db *DB) DeleteLink(id int64) error {
 }
 
 // UpdateLink updates a link in the database.
-func (db *DB) UpdateLink(id int64, title string) error {
-	result, err := db.Exec("UPDATE links SET title = ? WHERE id = ?", title, id)
+func (db *DB) UpdateLink(id int64, title string, description string) error {
+	result, err := db.Exec("UPDATE links SET title = ?, description = ? WHERE id = ?", title, description, id)
 	if err != nil {
 		return err
 	}

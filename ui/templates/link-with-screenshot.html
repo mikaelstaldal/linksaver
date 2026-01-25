@@ -4,32 +4,33 @@
         <h5 class="link-title list-of-links"><a href="{{.URL}}" target="_blank"
                class="inline-block text-truncate width:100%"
                title="{{or .Description .Title}}">{{.Title}}</a></h5>
-        <div class="link-title-edit" hidden>
-            <div class="f-row">
-                <form hx-patch="./{{.ID}}" hx-swap="outerHTML" hx-target="closest .link-item"
-                      hx-disabled-elt="find button"
-                      _="
-                   on htmx:afterRequest
-                   if event.detail.failed then
-                     put event.detail.xhr.responseText into #error-message
-                     remove @hidden from #error
-                   else
-                     put '' into #error
-                     add @hidden to #error
-                   end
-                 ">
-                    <input type="text" name="title" value="{{.Title}}" class="width:100%" required>
+        <div class="link-edit" hidden>
+            <form hx-patch="./{{.ID}}" hx-swap="outerHTML" hx-target="closest .link-item"
+                  hx-disabled-elt="find button"
+                  _="
+               on htmx:afterRequest
+               if event.detail.failed then
+                 put event.detail.xhr.responseText into #error-message
+                 remove @hidden from #error
+               else
+                 put '' into #error
+                 add @hidden to #error
+               end
+             ">
+                <div class="f-row">
+                    <input type="text" name="title" value="{{.Title}}" class="width:100%" maxlength="250" required>
                     <button class="iconbutton" type="submit" title="Save">&#x2714;</button>
                     <button class="iconbutton" type="reset" title="Cancel"
                             _="
                          on click
-                         add @hidden to the closest <.link-title-edit />
+                         add @hidden to the closest <.link-edit />
                          remove @hidden from <.link-title /> in the closest <.link-item />
                        "
                     >&#x274C;
                     </button>
-                </form>
-            </div>
+                </div>
+                <textarea name="description" class="width:100%" rows="3" maxlength="1020">{{.Description}}</textarea>
+            </form>
         </div>
 
         <div class="list-of-links"><a href="{{.URL}}" target="_blank"
@@ -40,7 +41,7 @@
             <button _="
                      on click
                      add @hidden to <.link-title /> in the closest <.link-item />
-                     remove @hidden from <.link-title-edit /> in the closest <.link-item />
+                     remove @hidden from <.link-edit /> in the closest <.link-item />
                    "
             >Edit
             </button>
