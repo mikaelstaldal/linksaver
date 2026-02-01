@@ -6,6 +6,10 @@ provides a web interface for organizing your bookmarks.
 
 You can also save short notes which are not connected to any particular URL along with your bookmarks.
 
+## Clients
+
+In addition to the built-in web interface, there is also a [native Android app](https://github.com/mikaelstaldal/linksaver-android).
+
 ## Features
 
 - **Save Links**: Add URLs with automatic title and description extraction and screenshots from web pages
