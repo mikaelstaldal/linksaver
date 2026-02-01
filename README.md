@@ -11,7 +11,7 @@ You can also save short notes which are not connected to any particular URL alon
 In addition to the built-in web interface, there is also 
 
 * A [native Android app](https://github.com/mikaelstaldal/linksaver-android)
-* A [desktop application]https://github.com/mikaelstaldal/linksaver-desktop)
+* A [desktop application](https://github.com/mikaelstaldal/linksaver-desktop)
 
 ## Features
 
