@@ -1,16 +1,8 @@
 {{define "link-with-screenshot"}}
 <div class="link-item box info bg">
     <div class="link-header">
-        <h5 class="link-title list-of-links">
-            {{if not (isNote .URL)}}
-            <a href="{{.URL}}" target="_blank"
-               class="inline-block text-truncate width:100%"
-               title="{{or .Description .Title}}">{{.Title}}</a>
-            {{else}}
-                {{.Title}}
-            {{end}}
-        </h5>
-        <div class="link-edit" hidden>
+{{if .Edit}}
+        <div class="link-edit">
             <form hx-patch="./{{.ID}}" hx-swap="outerHTML" hx-target="closest .link-item"
                   hx-disabled-elt="find button"
                   _="
@@ -26,19 +18,28 @@
                 <div class="f-row">
                     <input type="text" name="title" value="{{.Title}}" class="width:100%" maxlength="250" required>
                     <button class="iconbutton" type="submit" title="Save">&#x2714;</button>
-                    <button class="iconbutton" type="reset" title="Cancel"
-                            _="
-                         on click
-                         add @hidden to the closest <.link-edit />
-                         remove @hidden from <.link-title /> in the closest <.link-item />
-                       "
+                    <button class="iconbutton" title="Cancel"
+                            hx-get="./{{.ID}}"
+                            hx-swap="outerHTML"
+                            hx-target="closest .link-item"
                     >&#x274C;
                     </button>
                 </div>
                 <textarea name="description" class="width:100%" rows="3" maxlength="1020">{{.Description}}</textarea>
             </form>
         </div>
+{{else}}
+        <h5 class="link-title list-of-links">
+            {{if not (isNote .URL)}}
+            <a href="{{.URL}}" target="_blank"
+               class="inline-block text-truncate width:100%"
+               title="{{or .Description .Title}}">{{.Title}}</a>
+            {{else}}
+                {{.Title}}
+            {{end}}
+        </h5>
 
+{{end}}
         <div class="list-of-links">
             {{if not (isNote .URL)}}
                 <a href="{{.URL}}" target="_blank"
@@ -47,11 +48,9 @@
             {{end}}
         </div>
         <div class="margin-block-end">
-            <button _="
-                     on click
-                     add @hidden to <.link-title /> in the closest <.link-item />
-                     remove @hidden from <.link-edit /> in the closest <.link-item />
-                   "
+            <button hx-get="./{{.ID}}?edit=1"
+                    hx-swap="outerHTML"
+                    hx-target="closest .link-item"
             >Edit
             </button>
             <button class="warn bg"

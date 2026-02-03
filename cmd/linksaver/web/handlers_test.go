@@ -219,6 +219,36 @@ func TestHandlers(t *testing.T) {
 		if !bytes.Contains(body, []byte(testDescription)) {
 			t.Errorf("Response doesn't contain the expected link description\n%s", string(body))
 		}
+		if bytes.Contains(body, []byte("class=\"link-edit\"")) {
+			t.Errorf("Response contain the unexpected edit form")
+		}
+	})
+
+	t.Run("get single link for edit success", func(t *testing.T) {
+		req := httptest.NewRequest("GET", fmt.Sprintf("/%d?edit=1", linkId), nil)
+		req.SetBasicAuth(testUsername, testPassword)
+		response, body := testRequest(t, handler, req)
+
+		if status := response.StatusCode; status != http.StatusOK {
+			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
+		}
+
+		if contentType := response.Header.Get("Content-Type"); !strings.HasPrefix(contentType, "text/html") {
+			t.Errorf("Wrong Content-Type: %s", contentType)
+		}
+
+		if !bytes.Contains(body, []byte(mockServer.URL)) {
+			t.Errorf("Response doesn't contain the expected link URL\n%s", string(body))
+		}
+		if !bytes.Contains(body, []byte(testTitle)) {
+			t.Errorf("Response doesn't contain expected title\n%s", string(body))
+		}
+		if !bytes.Contains(body, []byte(testDescription)) {
+			t.Errorf("Response doesn't contain the expected link description\n%s", string(body))
+		}
+		if !bytes.Contains(body, []byte("class=\"link-edit\"")) {
+			t.Errorf("Response doesn't contain the expected edit form")
+		}
 	})
 
 	t.Run("get single link as JSON", func(t *testing.T) {

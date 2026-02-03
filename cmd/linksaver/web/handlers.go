@@ -162,6 +162,11 @@ type Link struct {
 	Screenshot  string
 }
 
+type LinkView struct {
+	db.Link
+	Edit bool
+}
+
 // ListLinks handles the request to list all links.
 func (h *Handlers) ListLinks(w http.ResponseWriter, r *http.Request) {
 	h.listLinks(w, r, http.StatusOK)
@@ -645,10 +650,14 @@ func (h *Handlers) getLink(w http.ResponseWriter, r *http.Request, id int64) {
 	if wantJson(r) {
 		h.renderJson(w, dbLink, http.StatusOK)
 	} else {
+		view := LinkView{
+			Link: dbLink,
+			Edit: r.URL.Query().Get("edit") == "1",
+		}
 		if h.browserContext != nil {
-			h.render(w, "link-with-screenshot", dbLink, http.StatusOK)
+			h.render(w, "link-with-screenshot", view, http.StatusOK)
 		} else {
-			h.render(w, "link-without-screenshot", dbLink, http.StatusOK)
+			h.render(w, "link-without-screenshot", view, http.StatusOK)
 		}
 	}
 }
@@ -699,13 +708,17 @@ func (h *Handlers) listLinks(w http.ResponseWriter, r *http.Request, status int)
 	if wantJson(r) {
 		h.renderJson(w, dbLinks, status)
 	} else {
+		links := make([]LinkView, 0, len(dbLinks))
+		for _, link := range dbLinks {
+			links = append(links, LinkView{Link: link})
+		}
 		data := struct {
 			Search          string
-			Links           []db.Link
+			Links           []LinkView
 			ShowScreenshots bool
 		}{
 			Search:          search,
-			Links:           dbLinks,
+			Links:           links,
 			ShowScreenshots: h.browserContext != nil,
 		}
 		var templateName string
