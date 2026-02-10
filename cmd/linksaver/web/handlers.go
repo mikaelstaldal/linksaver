@@ -140,6 +140,8 @@ func (h *Handlers) Routes() http.Handler {
 		mux.Handle("GET /screenshots/", http.StripPrefix("/screenshots", http.FileServer(http.Dir(h.screenshotsDir))))
 	}
 
+	mux.HandleFunc("GET /bookmarklet", h.BookmarkletSave)
+
 	mux.HandleFunc("GET /{$}", h.ListLinks)
 	mux.HandleFunc("POST /{$}", h.AddItem)
 	mux.HandleFunc("GET /{id}", h.GetLink)
@@ -217,8 +219,9 @@ func (h *Handlers) AddItem(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// addLink handles the request to add a new link.
-func (h *Handlers) addLink(w http.ResponseWriter, r *http.Request, urlToSave *url.URL) {
+// saveLink fetches the URL, extracts metadata, and saves it to the database.
+// Returns the link ID, an error message, and an HTTP status code.
+func (h *Handlers) saveLink(urlToSave *url.URL) (int64, string, int) {
 	var title, description string
 	var body []byte
 	var screenshot []byte
@@ -226,31 +229,38 @@ func (h *Handlers) addLink(w http.ResponseWriter, r *http.Request, urlToSave *ur
 	if h.browserContext != nil {
 		title, description, body, screenshot, err = h.extractTitleAndDescriptionAndBodyAndScreenshotFromURL(urlToSave)
 		if err != nil {
-			sendError(w, fmt.Sprintf("Failed to load URL: %v", err), http.StatusBadRequest)
-			return
+			return 0, fmt.Sprintf("Failed to load URL: %v", err), http.StatusBadRequest
 		}
 	} else {
 		title, description, body, err = h.extractTitleAndDescriptionAndBodyFromURL(urlToSave)
 		if err != nil {
-			sendError(w, fmt.Sprintf("Failed to load URL: %v", err), http.StatusBadRequest)
-			return
+			return 0, fmt.Sprintf("Failed to load URL: %v", err), http.StatusBadRequest
 		}
 	}
 
 	id, err := h.database.AddLink(urlToSave.String(), title, description, body)
 	if err != nil {
 		if errors.Is(err, db.ErrDuplicate) {
-			sendError(w, "URL already exists", http.StatusConflict)
-		} else {
-			sendError(w, fmt.Sprintf("Failed to add link: %v", err), http.StatusInternalServerError)
+			return 0, "URL already exists", http.StatusConflict
 		}
-		return
+		return 0, fmt.Sprintf("Failed to add link: %v", err), http.StatusInternalServerError
 	}
 
 	if screenshot != nil {
 		if err = h.saveScreenshot(urlToSave.String(), screenshot); err != nil {
-			sendError(w, fmt.Sprintf("Failed to save screenshot: %v", err), http.StatusInternalServerError)
+			return 0, fmt.Sprintf("Failed to save screenshot: %v", err), http.StatusInternalServerError
 		}
+	}
+
+	return id, "", http.StatusCreated
+}
+
+// addLink handles the request to add a new link.
+func (h *Handlers) addLink(w http.ResponseWriter, r *http.Request, urlToSave *url.URL) {
+	id, errMsg, status := h.saveLink(urlToSave)
+	if errMsg != "" {
+		sendError(w, errMsg, status)
+		return
 	}
 
 	w.Header().Set("Location", fmt.Sprintf("/%v", id))
@@ -272,6 +282,45 @@ func (h *Handlers) addNote(w http.ResponseWriter, r *http.Request, title string,
 
 	w.Header().Set("Location", fmt.Sprintf("/%v", id))
 	h.listLinks(w, r, http.StatusCreated)
+}
+
+// BookmarkletSave handles GET /bookmarklet?url=... to save a link from the bookmarklet popup.
+func (h *Handlers) BookmarkletSave(w http.ResponseWriter, r *http.Request) {
+	urlString := r.URL.Query().Get("url")
+	if urlString == "" {
+		h.render(w, "bookmarklet-result.html", struct {
+			Success bool
+			URL     string
+			Error   string
+		}{Success: false, Error: "No URL provided"}, http.StatusBadRequest)
+		return
+	}
+
+	parsedURL, err := url.Parse(urlString)
+	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") || h.isPrivateOrLocalhost(parsedURL.Hostname()) {
+		h.render(w, "bookmarklet-result.html", struct {
+			Success bool
+			URL     string
+			Error   string
+		}{Success: false, Error: "Invalid URL format. Must be a valid HTTP/HTTPS URL"}, http.StatusBadRequest)
+		return
+	}
+
+	_, errMsg, status := h.saveLink(parsedURL)
+	if errMsg != "" {
+		h.render(w, "bookmarklet-result.html", struct {
+			Success bool
+			URL     string
+			Error   string
+		}{Success: false, Error: errMsg}, status)
+		return
+	}
+
+	h.render(w, "bookmarklet-result.html", struct {
+		Success bool
+		URL     string
+		Error   string
+	}{Success: true, URL: urlString}, http.StatusCreated)
 }
 
 func (h *Handlers) isPrivateOrLocalhost(host string) bool {

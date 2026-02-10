@@ -75,3 +75,19 @@ textarea::placeholder {
 .inline-block {
   display: inline-block;
 }
+
+/* Bookmarklet result popup */
+.bookmarklet-body {
+  text-align: center;
+}
+
+.bookmarklet-url {
+  word-break: break-all;
+  font-size: 0.9em;
+  color: #555;
+}
+
+.bookmarklet-countdown {
+  font-size: 0.85em;
+  color: #888;
+}

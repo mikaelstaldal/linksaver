@@ -556,6 +556,65 @@ func TestHandlers(t *testing.T) {
 		}
 	})
 
+	t.Run("bookmarklet save success", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/bookmarklet?url="+url.QueryEscape(mockServer.URL+"/bookmarklet-page"), nil)
+		req.SetBasicAuth(testUsername, testPassword)
+		response, body := testRequest(t, handler, req)
+
+		if status := response.StatusCode; status != http.StatusCreated {
+			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusCreated)
+		}
+
+		if !bytes.Contains(body, []byte("Link saved!")) {
+			t.Errorf("Response doesn't contain success message\n%s", string(body))
+		}
+	})
+
+	t.Run("bookmarklet save missing url", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/bookmarklet", nil)
+		req.SetBasicAuth(testUsername, testPassword)
+		response, _ := testRequest(t, handler, req)
+
+		if status := response.StatusCode; status != http.StatusBadRequest {
+			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusBadRequest)
+		}
+	})
+
+	t.Run("bookmarklet save invalid url", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/bookmarklet?url=not-a-valid-url", nil)
+		req.SetBasicAuth(testUsername, testPassword)
+		response, _ := testRequest(t, handler, req)
+
+		if status := response.StatusCode; status != http.StatusBadRequest {
+			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusBadRequest)
+		}
+	})
+
+	t.Run("bookmarklet save duplicate url", func(t *testing.T) {
+		// Save the same URL again - should get conflict
+		req := httptest.NewRequest("GET", "/bookmarklet?url="+url.QueryEscape(mockServer.URL+"/bookmarklet-page"), nil)
+		req.SetBasicAuth(testUsername, testPassword)
+		response, _ := testRequest(t, handler, req)
+
+		if status := response.StatusCode; status != http.StatusConflict {
+			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusConflict)
+		}
+	})
+
+	t.Run("main page contains bookmarklet link", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/", nil)
+		req.SetBasicAuth(testUsername, testPassword)
+		response, body := testRequest(t, handler, req)
+
+		if status := response.StatusCode; status != http.StatusOK {
+			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
+		}
+
+		if !bytes.Contains(body, []byte("Save to Link Saver")) {
+			t.Errorf("Response doesn't contain bookmarklet link\n%s", string(body))
+		}
+	})
+
 	t.Run("unauthorized", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/", nil)
 		response, _ := testRequest(t, handler, req)

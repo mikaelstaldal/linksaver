@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Link Saver - Bookmarklet</title>
+    <link href="./static/missing.1.1.3.min.css" rel="stylesheet"
+          integrity="sha384-qZFYlw2B1UM516YRx4hSbZ/hoB1pKQObWWpcVXira7ZSpjf5NkrwpJuSpuGuu2WS">
+    <link href="./static/style.6.css" rel="stylesheet">
+</head>
+<body class="margin bookmarklet-body">
+{{if .Success}}
+    <h2>Link saved!</h2>
+    <p class="bookmarklet-url">{{.URL}}</p>
+    <p class="bookmarklet-countdown">Closing in <span id="seconds">3</span>s&hellip;</p>
+    <button id="bookmarklet-close">Close now</button>
+{{else}}
+    <h2>Error</h2>
+    <p>{{.Error}}</p>
+    <button id="bookmarklet-close">Close</button>
+{{end}}
+    <script src="./static/bookmarklet.js"></script>
+</body>
+</html>
