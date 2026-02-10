@@ -14,7 +14,12 @@
     <meta name="htmx-config" content='{"includeIndicatorStyles":false}'>
 </head>
 <body class="margin">
-    <h1>Link Saver</h1>
+    <div class="header-row">
+        <h1>Link Saver</h1>
+        <p><a id="bookmarklet-link" href="#">Save to Link Saver</a><br>
+            <small>Drag to bookmarks bar</small>
+        </p>
+    </div>
 
     <div class="box bad" role="alert" id="error" hidden>
         <strong class="block titlebar">Error</strong>
@@ -109,9 +114,6 @@
         </form>
     </div>
 
-    <p>Bookmarklet (drag to your bookmarks bar):
-        <a id="bookmarklet-link" href="#">Save to Link Saver</a>
-    </p>
     <script src="./static/bookmarklet.js"></script>
 
     <div id="links">

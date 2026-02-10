@@ -76,6 +76,22 @@ textarea::placeholder {
   display: inline-block;
 }
 
+/* Header row with bookmarklet */
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.header-row h1 {
+  margin-block-start: 0;
+}
+
+.header-row p {
+  text-align: right;
+  margin: 0;
+}
+
 /* Bookmarklet result popup */
 .bookmarklet-body {
   text-align: center;
