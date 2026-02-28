@@ -30,8 +30,8 @@ func main() {
 	port := flag.Int("port", 8080, "port to listen on")
 	addr := flag.String("addr", "", "address to listen on")
 	dataDir := flag.String("data", "data", "directory to store data in")
-	basicAuthFile := flag.String("basic-auth-file", "", "Use HTTP basic auth with username and password from given file in htpasswd format (bcrypt only)")
-	basicAuthRealm := flag.String("basic-auth-realm", "linksaver", "HTTP basic authentication realm")
+	basicAuthFile := flag.String("basic-auth-file", "", "enable HTTP basic auth with username and password from given file in htpasswd format (bcrypt only)")
+	basicAuthRealm := flag.String("basic-auth-realm", "linksaver", "realm for HTTP basic auth")
 	flag.Parse()
 
 	if *port < 1 || *port > 65535 {
