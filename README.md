@@ -34,7 +34,7 @@ In addition to the built-in web interface, there is also
 3. Run the container with HTTP basic authentication, listing externally:
    ```bash
    htpasswd -cBC 12 pwfile my_username
-   docker run --mount "type=bind,src=$(pwd)/pwfile,dst=/pwfile" --mount "type=bind,src=$(pwd)/data,dst=/data" --cap-drop ALL --security-opt no-new-privileges -p 8080:8080 linksaver -basic-auth-file /pwfile
+   docker run --mount "type=bind,src=$(pwd)/pwfile,dst=/pwfile" --mount "type=bind,src=$(pwd)/data,dst=/data" --cap-drop ALL --security-opt no-new-privileges -p 8080:8080 linksaver -basic-auth-file /pwfile -basic-auth-realm my-realm
    ```
 Note: This is only secure if you also use https.   
 
@@ -55,7 +55,7 @@ and store screenshots in `data/screenshots`.
 3. Run it with HTTP basic authentication, listing externally:
    ```bash
    htpasswd -cBC 12 pwfile my_username
-   ./linksaver -port 8080 -data data -basic-auth-file pwfile
+   ./linksaver -port 8080 -data data -basic-auth-file pwfile -basic-auth-realm my-realm
    ```  
 Note: This is only secure if you also use https.   
 

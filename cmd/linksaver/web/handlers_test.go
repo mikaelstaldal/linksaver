@@ -47,7 +47,7 @@ func TestHandlers(t *testing.T) {
 		t.Fatalf("Failed to hash password: %v", err)
 	}
 
-	handler := newHandlers("../../..", database, "", usernameBcryptHash, passwordBcryptHash, true).Routes()
+	handler := newHandlers("../../..", database, "", usernameBcryptHash, passwordBcryptHash, "my-realm", true).Routes()
 
 	// Create a mock HTTP server to simulate a valid URL
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -638,7 +638,7 @@ func testRequest(t *testing.T, handler http.Handler, req *http.Request) (*http.R
 }
 
 func Test_extractTitleAndDescriptionAndBodyFromURL(t *testing.T) {
-	handlers := newHandlers("../../..", nil, "", nil, nil, true)
+	handlers := newHandlers("../../..", nil, "", nil, nil, "", true)
 
 	tests := []struct {
 		name         string
@@ -739,7 +739,7 @@ func Test_extractTitleAndDescriptionAndBodyFromURL(t *testing.T) {
 }
 
 func Test_extractTitleFromURL(t *testing.T) {
-	handlers := newHandlers("../../..", nil, "", nil, nil, true)
+	handlers := newHandlers("../../..", nil, "", nil, nil, "", true)
 
 	tests := []struct {
 		name     string

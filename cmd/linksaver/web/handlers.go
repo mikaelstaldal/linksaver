@@ -44,15 +44,16 @@ type Handlers struct {
 	browserContext     context.Context
 	usernameBcryptHash []byte
 	passwordBcryptHash []byte
+	basicAuthRealm     string
 	forTesting         bool
 }
 
 // NewHandlers creates a new Handlers.
-func NewHandlers(executableDir string, database *db.DB, screenshotsDir string, usernameBcryptHash, passwordBcryptHash []byte) *Handlers {
-	return newHandlers(executableDir, database, screenshotsDir, usernameBcryptHash, passwordBcryptHash, false)
+func NewHandlers(executableDir string, database *db.DB, screenshotsDir string, usernameBcryptHash, passwordBcryptHash []byte, basicAuthRealm string) *Handlers {
+	return newHandlers(executableDir, database, screenshotsDir, usernameBcryptHash, passwordBcryptHash, basicAuthRealm, false)
 }
 
-func newHandlers(executableDir string, database *db.DB, screenshotsDir string, usernameBcryptHash, passwordBcryptHash []byte, forTesting bool) *Handlers {
+func newHandlers(executableDir string, database *db.DB, screenshotsDir string, usernameBcryptHash, passwordBcryptHash []byte, basicAuthRealm string, forTesting bool) *Handlers {
 	templates := template.New("").Funcs(template.FuncMap{
 		"screenshotFilename": screenshotFilename,
 		"isNote":             isNote,
@@ -112,6 +113,7 @@ func newHandlers(executableDir string, database *db.DB, screenshotsDir string, u
 		browserContext:     browserContext,
 		usernameBcryptHash: usernameBcryptHash,
 		passwordBcryptHash: passwordBcryptHash,
+		basicAuthRealm:     basicAuthRealm,
 		forTesting:         forTesting,
 	}
 }

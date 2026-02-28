@@ -30,7 +30,8 @@ func main() {
 	port := flag.Int("port", 8080, "port to listen on")
 	addr := flag.String("addr", "", "address to listen on")
 	dataDir := flag.String("data", "data", "directory to store data in")
-	basicAuth := flag.String("basic-auth-file", "", "Use HTTP basic auth with username and password from given file in htpasswd format")
+	basicAuthFile := flag.String("basic-auth-file", "", "Use HTTP basic auth with username and password from given file in htpasswd format (bcrypt only)")
+	basicAuthRealm := flag.String("basic-auth-realm", "linksaver", "HTTP basic authentication realm")
 	flag.Parse()
 
 	if *port < 1 || *port > 65535 {
@@ -72,10 +73,10 @@ func main() {
 
 	var usernameBcryptHash []byte
 	var passwordBcryptHash []byte
-	if *basicAuth != "" {
-		basicAuthContent, err := os.ReadFile(*basicAuth)
+	if *basicAuthFile != "" {
+		basicAuthContent, err := os.ReadFile(*basicAuthFile)
 		if err != nil {
-			log.Fatalf("Failed to read basic auth file '%s': %v", *basicAuth, err)
+			log.Fatalf("Failed to read basic auth file '%s': %v", *basicAuthFile, err)
 		}
 		basicAuthStr := strings.TrimSpace(string(basicAuthContent))
 
@@ -98,7 +99,7 @@ func main() {
 	}
 
 	// Initialize handlers
-	h := web.NewHandlers(executableDir, database, filepath.Join(*dataDir, screenshotsDir), usernameBcryptHash, passwordBcryptHash)
+	h := web.NewHandlers(executableDir, database, filepath.Join(*dataDir, screenshotsDir), usernameBcryptHash, passwordBcryptHash, *basicAuthRealm)
 
 	// Start server
 	serverAddr := fmt.Sprintf("%s:%d", *addr, *port)

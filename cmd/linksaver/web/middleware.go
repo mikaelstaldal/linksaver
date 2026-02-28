@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 
 	"golang.org/x/crypto/bcrypt"
@@ -31,7 +32,7 @@ func (h *Handlers) basicAuth(next http.Handler) http.Handler {
 			}
 		}
 
-		w.Header().Set("WWW-Authenticate", `Basic realm="restricted", charset="UTF-8"`)
+		w.Header().Set("WWW-Authenticate", fmt.Sprintf(`Basic realm=%q`, h.basicAuthRealm))
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 	})
 }
