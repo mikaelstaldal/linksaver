@@ -187,8 +187,8 @@ func (h *Handlers) AddItem(w http.ResponseWriter, r *http.Request) {
 	if urlString != "" {
 		// Parse and validate URL
 		parsedURL, err := url.Parse(urlString)
-		if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") || h.isPrivateOrLocalhost(parsedURL.Hostname()) {
-			sendError(w, "Invalid URL format. Must be a valid HTTP/HTTPS URL", http.StatusBadRequest)
+		if err != nil || h.validateURL(parsedURL) != nil {
+			sendError(w, "Invalid URL. Must be a valid HTTP/HTTPS URL", http.StatusBadRequest)
 			return
 		}
 		h.addLink(w, r, parsedURL)
@@ -299,7 +299,7 @@ func (h *Handlers) BookmarkletSave(w http.ResponseWriter, r *http.Request) {
 	}
 
 	parsedURL, err := url.Parse(urlString)
-	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") || h.isPrivateOrLocalhost(parsedURL.Hostname()) {
+	if err != nil || h.validateURL(parsedURL) != nil {
 		h.render(w, "bookmarklet-result.html", struct {
 			Success bool
 			URL     string
@@ -325,39 +325,45 @@ func (h *Handlers) BookmarkletSave(w http.ResponseWriter, r *http.Request) {
 	}{Success: true, URL: urlString}, http.StatusCreated)
 }
 
-func (h *Handlers) isPrivateOrLocalhost(host string) bool {
+func (h *Handlers) validateURL(u *url.URL) error {
 	if h.forTesting {
-		return false
+		return nil
 	}
 
-	ip := net.ParseIP(host)
-	if ip != nil {
-		return ip.IsLoopback() || ip.IsPrivate() || ip.IsUnspecified()
+	return validateExternalURL(u)
+}
+
+// validateExternalURL checks that the URL is safe to fetch (not localhost or private IPs).
+func validateExternalURL(u *url.URL) error {
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return fmt.Errorf("URL scheme must be http or https")
 	}
-	// Handle hostname cases
-	if host == "" || strings.HasPrefix(strings.ToLower(host), "localhost") ||
-		strings.HasSuffix(strings.ToLower(host), ".localhost") {
-		return true
+	hostname := u.Hostname()
+	if hostname == "" {
+		return fmt.Errorf("URL must have a hostname")
+	}
+	// Block localhost names
+	lower := strings.ToLower(hostname)
+	if lower == "localhost" || strings.HasSuffix(lower, ".localhost") {
+		return fmt.Errorf("URL must not point to localhost")
 	}
 
 	// Resolve hostname through DNS with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+	ips, err := net.DefaultResolver.LookupIPAddr(ctx, hostname)
 	if err != nil {
-		log.Printf("DNS lookup failed for %s: %v", host, err)
-		return true
+		return fmt.Errorf("DNS lookup failed for %s: %v", hostname, err)
 	}
 
 	// Check if any resolved IP is private
 	for _, ip := range ips {
-		if ip.IP.IsLoopback() || ip.IP.IsPrivate() || ip.IP.IsUnspecified() {
-			return true
+		if ip.IP.IsLoopback() || ip.IP.IsPrivate() || ip.IP.IsLinkLocalUnicast() || ip.IP.IsLinkLocalMulticast() || ip.IP.IsUnspecified() {
+			return fmt.Errorf("URL must not point to a private or local address")
 		}
 	}
-
-	return false
+	return nil
 }
 
 // extractTitleAndDescriptionAndBodyFromURL fetches the URL and extracts the page title from HTML.
