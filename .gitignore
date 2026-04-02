@@ -26,3 +26,9 @@ go.work.sum
 
 data/
 linksaver
+
+ignored/
+.claude
+TODO.md
+DOING.md
+DONE.md

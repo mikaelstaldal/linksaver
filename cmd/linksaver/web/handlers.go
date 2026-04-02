@@ -390,11 +390,19 @@ func (h *Handlers) extractTitleAndDescriptionAndBodyFromURL(url *url.URL) (strin
 		return "", "", nil, fmt.Errorf("failed to fetch URL: %w", err)
 	}
 
+	contentType := resp.Header.Get("Content-Type")
 	if resp.StatusCode != http.StatusOK {
+		// Degrade gracefully for bot-detection pages (e.g. Cloudflare): a 403 with an HTML body
+		// indicates a browser challenge rather than a real error. For all other non-200 responses
+		// (e.g. 404), return an error.
+		if resp.StatusCode == http.StatusForbidden &&
+			(strings.HasPrefix(strings.ToLower(contentType), "text/html") ||
+				strings.HasPrefix(strings.ToLower(contentType), "application/xhtml+xml")) {
+			log.Printf("HTTP 403 with HTML body fetching %s (bot detection?), saving with unknown title", url)
+			return "(unknown)", "", nil, nil
+		}
 		return "", "", nil, fmt.Errorf("HTTP error: %d", resp.StatusCode)
 	}
-
-	contentType := resp.Header.Get("Content-Type")
 	if strings.HasPrefix(strings.ToLower(contentType), "text/html") || strings.HasPrefix(strings.ToLower(contentType), "application/xhtml+xml") {
 		return h.extractTitleAndDescriptionAndBodyFromHtml(responseBody)
 	} else if strings.ToLower(contentType) == "application/pdf" {
@@ -559,6 +567,11 @@ func (h *Handlers) extractTitleAndDescriptionAndBodyAndScreenshotFromURL(url *ur
 		return "", "", nil, nil, fmt.Errorf("failed to fetch URL: %w", err)
 	}
 	if response.Status >= 400 {
+		// Degrade gracefully for Cloudflare-style bot detection (403). For all other errors, fail.
+		if response.Status == http.StatusForbidden {
+			log.Printf("HTTP 403 fetching %s (bot detection?), saving with unknown title", url)
+			return "(unknown)", "", nil, nil, nil
+		}
 		return "", "", nil, nil, fmt.Errorf("failed to fetch URL: %v %v", response.Status, response.StatusText)
 	}
 
