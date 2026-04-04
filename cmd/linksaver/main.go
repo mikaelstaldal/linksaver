@@ -7,12 +7,11 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
+	"github.com/mikaelstaldal/go-server-common/auth"
 	"github.com/mikaelstaldal/linksaver/cmd/linksaver/db"
 	"github.com/mikaelstaldal/linksaver/cmd/linksaver/web"
-	"golang.org/x/crypto/bcrypt"
 )
 
 const databaseName = "linksaver.sqlite"
@@ -71,42 +70,29 @@ func main() {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
 
-	var usernameBcryptHash []byte
-	var passwordBcryptHash []byte
+	var authMiddleware func(http.Handler) http.Handler
 	if *basicAuthFile != "" {
-		basicAuthContent, err := os.ReadFile(*basicAuthFile)
+		htpasswd, err := auth.LoadHtpasswd(*basicAuthFile)
 		if err != nil {
-			log.Fatalf("Failed to read basic auth file '%s': %v", *basicAuthFile, err)
+			log.Fatalf("load htpasswd: %v", err)
 		}
-		basicAuthStr := strings.TrimSpace(string(basicAuthContent))
-
-		username, passwordBcryptHashStr, ok := strings.Cut(basicAuthStr, ":")
-		if !ok {
-			log.Fatalf("Invalid basic auth value '%s'", basicAuthStr)
-		}
-		passwordBcryptHash = []byte(passwordBcryptHashStr)
-		_, err = bcrypt.Cost(passwordBcryptHash)
-		if err != nil {
-			log.Fatalf("Invalid basic auth bcrypt hash '%s': %v", passwordBcryptHashStr, err)
-		}
-
-		usernameBcryptHash, err = bcrypt.GenerateFromPassword([]byte(username), bcrypt.MinCost)
-		if err != nil {
-			log.Fatalf("Failed to hash username: %v", err)
-		}
-
-		log.Println("Using HTTP basic authentication")
+		authMiddleware = htpasswd.Middleware(*basicAuthRealm)
+		log.Printf("basic authentication enabled")
 	}
 
 	// Initialize handlers
-	h := web.NewHandlers(executableDir, database, filepath.Join(*dataDir, screenshotsDir), usernameBcryptHash, passwordBcryptHash, *basicAuthRealm)
+	root := web.NewHandlers(executableDir, database, filepath.Join(*dataDir, screenshotsDir)).Routes()
+
+	if authMiddleware != nil {
+		root = authMiddleware(root)
+	}
 
 	// Start server
 	serverAddr := fmt.Sprintf("%s:%d", *addr, *port)
 	log.Printf("Starting server on %s", serverAddr)
 	server := http.Server{
 		Addr:         serverAddr,
-		Handler:      h.Routes(),
+		Handler:      root,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 20 * time.Second,
 		IdleTimeout:  time.Minute,

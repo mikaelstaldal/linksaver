@@ -36,24 +36,21 @@ const maxBodyLength = 1000000
 
 // Handlers holds dependencies for the handlers.
 type Handlers struct {
-	executableDir      string
-	database           *db.DB
-	screenshotsDir     string
-	templates          *template.Template
-	client             *http.Client
-	browserContext     context.Context
-	usernameBcryptHash []byte
-	passwordBcryptHash []byte
-	basicAuthRealm     string
-	forTesting         bool
+	executableDir  string
+	database       *db.DB
+	screenshotsDir string
+	templates      *template.Template
+	client         *http.Client
+	browserContext context.Context
+	forTesting     bool
 }
 
 // NewHandlers creates a new Handlers.
-func NewHandlers(executableDir string, database *db.DB, screenshotsDir string, usernameBcryptHash, passwordBcryptHash []byte, basicAuthRealm string) *Handlers {
-	return newHandlers(executableDir, database, screenshotsDir, usernameBcryptHash, passwordBcryptHash, basicAuthRealm, false)
+func NewHandlers(executableDir string, database *db.DB, screenshotsDir string) *Handlers {
+	return newHandlers(executableDir, database, screenshotsDir, false)
 }
 
-func newHandlers(executableDir string, database *db.DB, screenshotsDir string, usernameBcryptHash, passwordBcryptHash []byte, basicAuthRealm string, forTesting bool) *Handlers {
+func newHandlers(executableDir string, database *db.DB, screenshotsDir string, forTesting bool) *Handlers {
 	templates := template.New("").Funcs(template.FuncMap{
 		"screenshotFilename": screenshotFilename,
 		"isNote":             isNote,
@@ -105,16 +102,13 @@ func newHandlers(executableDir string, database *db.DB, screenshotsDir string, u
 	}
 
 	return &Handlers{
-		executableDir:      executableDir,
-		database:           database,
-		screenshotsDir:     screenshotsDir,
-		templates:          templates,
-		client:             client,
-		browserContext:     browserContext,
-		usernameBcryptHash: usernameBcryptHash,
-		passwordBcryptHash: passwordBcryptHash,
-		basicAuthRealm:     basicAuthRealm,
-		forTesting:         forTesting,
+		executableDir:  executableDir,
+		database:       database,
+		screenshotsDir: screenshotsDir,
+		templates:      templates,
+		client:         client,
+		browserContext: browserContext,
+		forTesting:     forTesting,
 	}
 }
 
@@ -150,11 +144,7 @@ func (h *Handlers) Routes() http.Handler {
 	mux.HandleFunc("PATCH /{id}", h.EditLink)
 	mux.HandleFunc("DELETE /{id}", h.DeleteLink)
 
-	if h.usernameBcryptHash != nil && h.passwordBcryptHash != nil {
-		return commonHeaders(h.basicAuth(mux))
-	} else {
-		return commonHeaders(mux)
-	}
+	return commonHeaders(mux)
 }
 
 type Link struct {

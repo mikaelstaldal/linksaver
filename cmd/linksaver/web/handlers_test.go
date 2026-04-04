@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/mikaelstaldal/linksaver/cmd/linksaver/db"
-	"golang.org/x/crypto/bcrypt"
 )
 
 func TestHandlers(t *testing.T) {
@@ -24,8 +23,6 @@ func TestHandlers(t *testing.T) {
 
 	testTitle := "Test Title"
 	testDescription := "Test Description"
-	testUsername := "test username"
-	testPassword := "test password"
 
 	// Initialize the database
 	database, err := db.InitDB(dbFile)
@@ -37,17 +34,7 @@ func TestHandlers(t *testing.T) {
 		_ = os.Remove(dbFile)
 	})
 
-	usernameBcryptHash, err := bcrypt.GenerateFromPassword([]byte(testUsername), bcrypt.MinCost)
-	if err != nil {
-		t.Fatalf("Failed to hash username: %v", err)
-	}
-
-	passwordBcryptHash, err := bcrypt.GenerateFromPassword([]byte(testPassword), bcrypt.MinCost)
-	if err != nil {
-		t.Fatalf("Failed to hash password: %v", err)
-	}
-
-	handler := newHandlers("../../..", database, "", usernameBcryptHash, passwordBcryptHash, "my-realm", true).Routes()
+	handler := newHandlers("../../..", database, "", true).Routes()
 
 	// Create a mock HTTP server to simulate a valid URL
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -62,7 +49,6 @@ func TestHandlers(t *testing.T) {
 	t.Run("add link success", func(t *testing.T) {
 		req := httptest.NewRequest("POST", "/", strings.NewReader("url="+mockServer.URL))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		req.SetBasicAuth(testUsername, testPassword)
 		response, body := testRequest(t, handler, req)
 
 		if status := response.StatusCode; status != http.StatusCreated {
@@ -92,7 +78,6 @@ func TestHandlers(t *testing.T) {
 	t.Run("add link missing url", func(t *testing.T) {
 		req := httptest.NewRequest("POST", "/", strings.NewReader(""))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		req.SetBasicAuth(testUsername, testPassword)
 		response, _ := testRequest(t, handler, req)
 
 		if status := response.StatusCode; status != http.StatusBadRequest {
@@ -103,7 +88,6 @@ func TestHandlers(t *testing.T) {
 	t.Run("add link invalid url", func(t *testing.T) {
 		req := httptest.NewRequest("POST", "/", strings.NewReader("url=invalid-url"))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		req.SetBasicAuth(testUsername, testPassword)
 		response, _ := testRequest(t, handler, req)
 
 		if status := response.StatusCode; status != http.StatusBadRequest {
@@ -113,7 +97,6 @@ func TestHandlers(t *testing.T) {
 
 	t.Run("get all links success", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/", nil)
-		req.SetBasicAuth(testUsername, testPassword)
 		response, body := testRequest(t, handler, req)
 
 		if status := response.StatusCode; status != http.StatusOK {
@@ -141,7 +124,6 @@ func TestHandlers(t *testing.T) {
 	t.Run("get all links as JSON", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/", nil)
 		req.Header.Set("Accept", "application/json")
-		req.SetBasicAuth(testUsername, testPassword)
 		response, body := testRequest(t, handler, req)
 
 		if status := response.StatusCode; status != http.StatusOK {
@@ -172,7 +154,6 @@ func TestHandlers(t *testing.T) {
 
 	t.Run("search success", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/?s=test", nil)
-		req.SetBasicAuth(testUsername, testPassword)
 		response, body := testRequest(t, handler, req)
 
 		if status := response.StatusCode; status != http.StatusOK {
@@ -199,7 +180,6 @@ func TestHandlers(t *testing.T) {
 
 	t.Run("get single link success", func(t *testing.T) {
 		req := httptest.NewRequest("GET", fmt.Sprintf("/%d", linkId), nil)
-		req.SetBasicAuth(testUsername, testPassword)
 		response, body := testRequest(t, handler, req)
 
 		if status := response.StatusCode; status != http.StatusOK {
@@ -226,7 +206,6 @@ func TestHandlers(t *testing.T) {
 
 	t.Run("get single link for edit success", func(t *testing.T) {
 		req := httptest.NewRequest("GET", fmt.Sprintf("/%d?edit=1", linkId), nil)
-		req.SetBasicAuth(testUsername, testPassword)
 		response, body := testRequest(t, handler, req)
 
 		if status := response.StatusCode; status != http.StatusOK {
@@ -254,7 +233,6 @@ func TestHandlers(t *testing.T) {
 	t.Run("get single link as JSON", func(t *testing.T) {
 		req := httptest.NewRequest("GET", fmt.Sprintf("/%d", linkId), nil)
 		req.Header.Set("Accept", "application/json")
-		req.SetBasicAuth(testUsername, testPassword)
 		response, body := testRequest(t, handler, req)
 
 		if status := response.StatusCode; status != http.StatusOK {
@@ -282,7 +260,6 @@ func TestHandlers(t *testing.T) {
 
 	t.Run("get single link invalid id", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/invalid", nil)
-		req.SetBasicAuth(testUsername, testPassword)
 		response, _ := testRequest(t, handler, req)
 
 		if status := response.StatusCode; status != http.StatusBadRequest {
@@ -292,7 +269,6 @@ func TestHandlers(t *testing.T) {
 
 	t.Run("get single link not found", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/999", nil)
-		req.SetBasicAuth(testUsername, testPassword)
 		response, _ := testRequest(t, handler, req)
 
 		if status := response.StatusCode; status != http.StatusNotFound {
@@ -303,7 +279,6 @@ func TestHandlers(t *testing.T) {
 	t.Run("patch link success", func(t *testing.T) {
 		req := httptest.NewRequest("PATCH", fmt.Sprintf("/%d", linkId), strings.NewReader("title=Updated Title&description=Updated Description"))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		req.SetBasicAuth(testUsername, testPassword)
 		response, body := testRequest(t, handler, req)
 
 		if status := response.StatusCode; status != http.StatusOK {
@@ -339,7 +314,6 @@ func TestHandlers(t *testing.T) {
 		req := httptest.NewRequest("PATCH", fmt.Sprintf("/%d", linkId), strings.NewReader("title=Updated Title&description=Updated Description"))
 		req.Header.Set("Accept", "application/json")
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		req.SetBasicAuth(testUsername, testPassword)
 		response, body := testRequest(t, handler, req)
 
 		if status := response.StatusCode; status != http.StatusOK {
@@ -380,7 +354,6 @@ func TestHandlers(t *testing.T) {
 	t.Run("patch link invalid id", func(t *testing.T) {
 		req := httptest.NewRequest("PATCH", "/invalid", strings.NewReader("title=Updated Title&description=Updated Description"))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		req.SetBasicAuth(testUsername, testPassword)
 		response, _ := testRequest(t, handler, req)
 
 		if status := response.StatusCode; status != http.StatusBadRequest {
@@ -391,7 +364,6 @@ func TestHandlers(t *testing.T) {
 	t.Run("patch link not found", func(t *testing.T) {
 		req := httptest.NewRequest("PATCH", "/999", strings.NewReader("title=Updated Title&description=Updated Description"))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		req.SetBasicAuth(testUsername, testPassword)
 		response, _ := testRequest(t, handler, req)
 
 		if status := response.StatusCode; status != http.StatusNotFound {
@@ -402,7 +374,6 @@ func TestHandlers(t *testing.T) {
 	t.Run("patch link missing title", func(t *testing.T) {
 		req := httptest.NewRequest("PATCH", fmt.Sprintf("/%d", linkId), strings.NewReader("description=Updated Description"))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		req.SetBasicAuth(testUsername, testPassword)
 		response, _ := testRequest(t, handler, req)
 
 		if status := response.StatusCode; status != http.StatusBadRequest {
@@ -413,7 +384,6 @@ func TestHandlers(t *testing.T) {
 	t.Run("patch link too long title", func(t *testing.T) {
 		req := httptest.NewRequest("PATCH", fmt.Sprintf("/%d", linkId), strings.NewReader("title="+strings.Repeat("a", maxTitleLength+1)))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		req.SetBasicAuth(testUsername, testPassword)
 		response, _ := testRequest(t, handler, req)
 
 		if status := response.StatusCode; status != http.StatusBadRequest {
@@ -424,7 +394,6 @@ func TestHandlers(t *testing.T) {
 	t.Run("patch link too long description", func(t *testing.T) {
 		req := httptest.NewRequest("PATCH", fmt.Sprintf("/%d", linkId), strings.NewReader("title=whatever&description="+strings.Repeat("b", maxDescriptionLength+1)))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		req.SetBasicAuth(testUsername, testPassword)
 		response, _ := testRequest(t, handler, req)
 
 		if status := response.StatusCode; status != http.StatusBadRequest {
@@ -434,7 +403,6 @@ func TestHandlers(t *testing.T) {
 
 	t.Run("delete link success", func(t *testing.T) {
 		req := httptest.NewRequest("DELETE", fmt.Sprintf("/%d", linkId), nil)
-		req.SetBasicAuth(testUsername, testPassword)
 		response, _ := testRequest(t, handler, req)
 
 		if status := response.StatusCode; status != http.StatusOK {
@@ -450,7 +418,6 @@ func TestHandlers(t *testing.T) {
 
 	t.Run("delete link invalid id", func(t *testing.T) {
 		req := httptest.NewRequest("DELETE", "/invalid", nil)
-		req.SetBasicAuth(testUsername, testPassword)
 		response, _ := testRequest(t, handler, req)
 
 		if status := response.StatusCode; status != http.StatusBadRequest {
@@ -460,7 +427,6 @@ func TestHandlers(t *testing.T) {
 
 	t.Run("delete link not found", func(t *testing.T) {
 		req := httptest.NewRequest("DELETE", "/999", nil)
-		req.SetBasicAuth(testUsername, testPassword)
 		response, _ := testRequest(t, handler, req)
 
 		if status := response.StatusCode; status != http.StatusNotFound {
@@ -471,7 +437,6 @@ func TestHandlers(t *testing.T) {
 	t.Run("add note success", func(t *testing.T) {
 		req := httptest.NewRequest("POST", "/", strings.NewReader("note-title=NoteTitle&note-text=NoteText"))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		req.SetBasicAuth(testUsername, testPassword)
 		response, body := testRequest(t, handler, req)
 
 		if status := response.StatusCode; status != http.StatusCreated {
@@ -498,7 +463,6 @@ func TestHandlers(t *testing.T) {
 	t.Run("add note missing text", func(t *testing.T) {
 		req := httptest.NewRequest("POST", "/", strings.NewReader("note-title=NoteTitle&note-text="))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		req.SetBasicAuth(testUsername, testPassword)
 		response, _ := testRequest(t, handler, req)
 
 		if status := response.StatusCode; status != http.StatusBadRequest {
@@ -508,7 +472,6 @@ func TestHandlers(t *testing.T) {
 
 	t.Run("get single note success", func(t *testing.T) {
 		req := httptest.NewRequest("GET", fmt.Sprintf("/%d", linkId), nil)
-		req.SetBasicAuth(testUsername, testPassword)
 		response, body := testRequest(t, handler, req)
 
 		if status := response.StatusCode; status != http.StatusOK {
@@ -530,7 +493,6 @@ func TestHandlers(t *testing.T) {
 	t.Run("get single note as JSON", func(t *testing.T) {
 		req := httptest.NewRequest("GET", fmt.Sprintf("/%d", linkId), nil)
 		req.Header.Set("Accept", "application/json")
-		req.SetBasicAuth(testUsername, testPassword)
 		response, body := testRequest(t, handler, req)
 
 		if status := response.StatusCode; status != http.StatusOK {
@@ -558,7 +520,6 @@ func TestHandlers(t *testing.T) {
 
 	t.Run("bookmarklet save success", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/bookmarklet?url="+url.QueryEscape(mockServer.URL+"/bookmarklet-page"), nil)
-		req.SetBasicAuth(testUsername, testPassword)
 		response, body := testRequest(t, handler, req)
 
 		if status := response.StatusCode; status != http.StatusCreated {
@@ -572,7 +533,6 @@ func TestHandlers(t *testing.T) {
 
 	t.Run("bookmarklet save missing url", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/bookmarklet", nil)
-		req.SetBasicAuth(testUsername, testPassword)
 		response, _ := testRequest(t, handler, req)
 
 		if status := response.StatusCode; status != http.StatusBadRequest {
@@ -582,7 +542,6 @@ func TestHandlers(t *testing.T) {
 
 	t.Run("bookmarklet save invalid url", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/bookmarklet?url=not-a-valid-url", nil)
-		req.SetBasicAuth(testUsername, testPassword)
 		response, _ := testRequest(t, handler, req)
 
 		if status := response.StatusCode; status != http.StatusBadRequest {
@@ -593,7 +552,6 @@ func TestHandlers(t *testing.T) {
 	t.Run("bookmarklet save duplicate url", func(t *testing.T) {
 		// Save the same URL again - should get conflict
 		req := httptest.NewRequest("GET", "/bookmarklet?url="+url.QueryEscape(mockServer.URL+"/bookmarklet-page"), nil)
-		req.SetBasicAuth(testUsername, testPassword)
 		response, _ := testRequest(t, handler, req)
 
 		if status := response.StatusCode; status != http.StatusConflict {
@@ -603,7 +561,6 @@ func TestHandlers(t *testing.T) {
 
 	t.Run("main page contains bookmarklet link", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/", nil)
-		req.SetBasicAuth(testUsername, testPassword)
 		response, body := testRequest(t, handler, req)
 
 		if status := response.StatusCode; status != http.StatusOK {
@@ -612,15 +569,6 @@ func TestHandlers(t *testing.T) {
 
 		if !bytes.Contains(body, []byte("Save to Link Saver")) {
 			t.Errorf("Response doesn't contain bookmarklet link\n%s", string(body))
-		}
-	})
-
-	t.Run("unauthorized", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/", nil)
-		response, _ := testRequest(t, handler, req)
-
-		if status := response.StatusCode; status != http.StatusUnauthorized {
-			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusUnauthorized)
 		}
 	})
 }
@@ -638,7 +586,7 @@ func testRequest(t *testing.T, handler http.Handler, req *http.Request) (*http.R
 }
 
 func Test_extractTitleAndDescriptionAndBodyFromURL(t *testing.T) {
-	handlers := newHandlers("../../..", nil, "", nil, nil, "", true)
+	handlers := newHandlers("../../..", nil, "", true)
 
 	tests := []struct {
 		name         string
@@ -739,7 +687,7 @@ func Test_extractTitleAndDescriptionAndBodyFromURL(t *testing.T) {
 }
 
 func Test_extractTitleFromURL(t *testing.T) {
-	handlers := newHandlers("../../..", nil, "", nil, nil, "", true)
+	handlers := newHandlers("../../..", nil, "", true)
 
 	tests := []struct {
 		name     string

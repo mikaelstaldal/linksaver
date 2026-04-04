@@ -1,13 +1,14 @@
 module github.com/mikaelstaldal/linksaver
 
-go 1.25
+go 1.25.0
 
 require (
 	github.com/chromedp/cdproto v0.0.0-20250803210736-d308e07a266d
 	github.com/chromedp/chromedp v0.14.2
 	github.com/ledongthuc/pdf v0.0.0-20250511090121-5959a4027728
-	golang.org/x/crypto v0.47.0
-	golang.org/x/net v0.49.0
+	github.com/mikaelstaldal/go-server-common v1.0.0
+	golang.org/x/crypto v0.49.0
+	golang.org/x/net v0.51.0
 	modernc.org/sqlite v1.44.2
 )
 
@@ -23,7 +24,7 @@ require (
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	golang.org/x/exp v0.0.0-20260112195511-716be5621a96 // indirect
-	golang.org/x/sys v0.40.0 // indirect
+	golang.org/x/sys v0.42.0 // indirect
 	modernc.org/libc v1.67.6 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
