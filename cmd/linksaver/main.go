@@ -41,7 +41,7 @@ func main() {
 	info, err := os.Stat(*dataDir)
 	if err != nil {
 		if os.IsNotExist(err) {
-			if err := os.MkdirAll(*dataDir, 0755); err != nil {
+			if err := os.MkdirAll(*dataDir, 0700); err != nil {
 				log.Fatalf("Could not create data directory: %s", *dataDir)
 			}
 		} else {

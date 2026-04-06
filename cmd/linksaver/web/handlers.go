@@ -93,7 +93,7 @@ func newHandlers(executableDir string, database *db.DB, screenshotsDir string, f
 	var browserContext context.Context
 	dockerURL := os.Getenv("CHROMEDP")
 	if dockerURL != "" {
-		if err := os.MkdirAll(screenshotsDir, 0755); err != nil {
+		if err := os.MkdirAll(screenshotsDir, 0700); err != nil {
 			log.Fatalf("failed to create screenshots directory: %v", err)
 		}
 
