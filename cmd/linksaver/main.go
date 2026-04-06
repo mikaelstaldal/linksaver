@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/mikaelstaldal/go-server-common/auth"
+	"github.com/mikaelstaldal/go-server-common/csrf"
 	"github.com/mikaelstaldal/linksaver/cmd/linksaver/db"
 	"github.com/mikaelstaldal/linksaver/cmd/linksaver/web"
 )
@@ -81,7 +82,8 @@ func main() {
 	}
 
 	// Initialize handlers
-	root := web.NewHandlers(executableDir, database, filepath.Join(*dataDir, screenshotsDir)).Routes()
+	mux := web.NewHandlers(executableDir, database, filepath.Join(*dataDir, screenshotsDir)).Routes()
+	var root = csrf.Middleware(mux)
 
 	if authMiddleware != nil {
 		root = authMiddleware(root)
