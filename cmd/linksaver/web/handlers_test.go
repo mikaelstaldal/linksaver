@@ -41,7 +41,7 @@ func TestHandlers(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(fmt.Sprintf("<html><head><title>%s</title><meta name='description' content='%s'></head><body>Some body</body></html>", testTitle, testDescription)))
+		_, _ = fmt.Fprintf(w, "<html><head><title>%s</title><meta name='description' content='%s'></head><body>Some body</body></html>", testTitle, testDescription)
 	}))
 	defer mockServer.Close()
 

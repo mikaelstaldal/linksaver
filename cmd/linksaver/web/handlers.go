@@ -453,9 +453,10 @@ func extractTextContent(n *html.Node) string {
 	var text strings.Builder
 
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		if c.Type == html.TextNode {
+		switch c.Type {
+		case html.TextNode:
 			text.WriteString(c.Data)
-		} else if c.Type == html.ElementNode {
+		case html.ElementNode:
 			text.WriteString(extractTextContent(c))
 		}
 	}
