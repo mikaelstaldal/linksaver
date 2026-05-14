@@ -14,6 +14,6 @@ while getopts "o:" opt; do
   esac
 done
 
-go build -tags netgo $OUTPUT_FLAG .
+go build -tags netgo $OUTPUT_FLAG ./cmd/linksaver/
 go test ./...
 golangci-lint run ./...
