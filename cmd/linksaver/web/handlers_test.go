@@ -14,6 +14,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/mikaelstaldal/linksaver/cmd/linksaver/db"
 )
 
@@ -26,9 +29,7 @@ func TestHandlers(t *testing.T) {
 
 	// Initialize the database
 	database, err := db.InitDB(dbFile)
-	if err != nil {
-		t.Fatalf("Failed to initialize database: %v", err)
-	}
+	require.NoError(t, err, "Failed to initialize database")
 	t.Cleanup(func() {
 		_ = database.Close()
 		_ = os.Remove(dbFile)
@@ -51,28 +52,17 @@ func TestHandlers(t *testing.T) {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		response, body := testRequest(t, handler, req)
 
-		if status := response.StatusCode; status != http.StatusCreated {
-			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusCreated)
-		}
+		assert.Equal(t, http.StatusCreated, response.StatusCode, "Handlers returned wrong status code")
 
 		locationHeader := response.Header.Get("Location")
-		if linkIdString, found := strings.CutPrefix(locationHeader, "/"); !found {
-			t.Errorf("Response Location header doesn't has correct format: '%s'", locationHeader)
-		} else {
-			if linkId, err = strconv.ParseInt(linkIdString, 10, 64); err != nil {
-				t.Errorf("Failed to convert link ID: %v", err)
-			}
-		}
+		linkIdString, found := strings.CutPrefix(locationHeader, "/")
+		require.True(t, found, "Response Location header doesn't has correct format: '%s'", locationHeader)
+		linkId, err = strconv.ParseInt(linkIdString, 10, 64)
+		require.NoError(t, err, "Failed to convert link ID")
 
-		if !bytes.Contains(body, []byte(mockServer.URL)) {
-			t.Errorf("Response doesn't contain the expected link URL\n%s", string(body))
-		}
-		if !bytes.Contains(body, []byte(testTitle)) {
-			t.Errorf("Response doesn't contain the expected link title\n%s", string(body))
-		}
-		if !bytes.Contains(body, []byte(testDescription)) {
-			t.Errorf("Response doesn't contain the expected link description\n%s", string(body))
-		}
+		assert.Contains(t, string(body), mockServer.URL, "Response doesn't contain the expected link URL")
+		assert.Contains(t, string(body), testTitle, "Response doesn't contain the expected link title")
+		assert.Contains(t, string(body), testDescription, "Response doesn't contain the expected link description")
 	})
 
 	t.Run("add link missing url", func(t *testing.T) {
@@ -80,9 +70,7 @@ func TestHandlers(t *testing.T) {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		response, _ := testRequest(t, handler, req)
 
-		if status := response.StatusCode; status != http.StatusBadRequest {
-			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusBadRequest)
-		}
+		assert.Equal(t, http.StatusBadRequest, response.StatusCode, "Handlers returned wrong status code")
 	})
 
 	t.Run("add link invalid url", func(t *testing.T) {
@@ -90,35 +78,21 @@ func TestHandlers(t *testing.T) {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		response, _ := testRequest(t, handler, req)
 
-		if status := response.StatusCode; status != http.StatusBadRequest {
-			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusBadRequest)
-		}
+		assert.Equal(t, http.StatusBadRequest, response.StatusCode, "Handlers returned wrong status code")
 	})
 
 	t.Run("get all links success", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/", nil)
 		response, body := testRequest(t, handler, req)
 
-		if status := response.StatusCode; status != http.StatusOK {
-			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
-		}
+		assert.Equal(t, http.StatusOK, response.StatusCode, "Handlers returned wrong status code")
 
-		if contentType := response.Header.Get("Content-Type"); !strings.HasPrefix(contentType, "text/html") {
-			t.Errorf("Wrong Content-Type: %s", contentType)
-		}
+		assert.True(t, strings.HasPrefix(response.Header.Get("Content-Type"), "text/html"), "Wrong Content-Type: %s", response.Header.Get("Content-Type"))
 
-		if !bytes.Contains(body, []byte(mockServer.URL)) {
-			t.Errorf("Response doesn't contain the expected link URL\n%s", string(body))
-		}
-		if !bytes.Contains(body, []byte(testTitle)) {
-			t.Errorf("Response doesn't contain the expected link title\n%s", string(body))
-		}
-		if !bytes.Contains(body, []byte(testDescription)) {
-			t.Errorf("Response doesn't contain the expected link description\n%s", string(body))
-		}
-		if !bytes.Contains(body, []byte(time.Now().Format("2006-01-02 "))) {
-			t.Errorf("Response doesn't contain the expected date\n%s", string(body))
-		}
+		assert.Contains(t, string(body), mockServer.URL, "Response doesn't contain the expected link URL")
+		assert.Contains(t, string(body), testTitle, "Response doesn't contain the expected link title")
+		assert.Contains(t, string(body), testDescription, "Response doesn't contain the expected link description")
+		assert.Contains(t, string(body), time.Now().Format("2006-01-02 "), "Response doesn't contain the expected date")
 	})
 
 	t.Run("get all links as JSON", func(t *testing.T) {
@@ -126,29 +100,18 @@ func TestHandlers(t *testing.T) {
 		req.Header.Set("Accept", "application/json")
 		response, body := testRequest(t, handler, req)
 
-		if status := response.StatusCode; status != http.StatusOK {
-			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
-		}
+		assert.Equal(t, http.StatusOK, response.StatusCode, "Handlers returned wrong status code")
 
-		if contentType := response.Header.Get("Content-Type"); !strings.HasPrefix(contentType, "application/json") {
-			t.Errorf("Wrong Content-Type: %s", contentType)
-		}
+		assert.True(t, strings.HasPrefix(response.Header.Get("Content-Type"), "application/json"), "Wrong Content-Type: %s", response.Header.Get("Content-Type"))
 
 		var data []db.Link
-		if err := json.Unmarshal(body, &data); err != nil {
-			t.Errorf("Response doesn't contain the expected JSON\n%s", string(body))
-		}
-		if len(data) != 1 {
-			t.Errorf("Wrong length of JSON response: %d", len(data))
-		}
-		if data[0].URL != mockServer.URL {
-			t.Errorf("Response doesn't contain the expected link URL\n%s", data[0].URL)
-		}
-		if data[0].Title != testTitle {
-			t.Errorf("Response doesn't contain the expected link title\n%s", data[0].Title)
-		}
-		if data[0].Description != testDescription {
-			t.Errorf("Response doesn't contain the expected link description\n%s", data[0].Description)
+		err := json.Unmarshal(body, &data)
+		assert.NoError(t, err, "Response doesn't contain the expected JSON")
+		assert.Len(t, data, 1, "Wrong length of JSON response")
+		if len(data) == 1 {
+			assert.Equal(t, mockServer.URL, data[0].URL)
+			assert.Equal(t, testTitle, data[0].Title)
+			assert.Equal(t, testDescription, data[0].Description)
 		}
 	})
 
@@ -156,78 +119,42 @@ func TestHandlers(t *testing.T) {
 		req := httptest.NewRequest("GET", "/?s=test", nil)
 		response, body := testRequest(t, handler, req)
 
-		if status := response.StatusCode; status != http.StatusOK {
-			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
-		}
+		assert.Equal(t, http.StatusOK, response.StatusCode, "Handlers returned wrong status code")
 
-		if contentType := response.Header.Get("Content-Type"); !strings.HasPrefix(contentType, "text/html") {
-			t.Errorf("Wrong Content-Type: %s", contentType)
-		}
+		assert.True(t, strings.HasPrefix(response.Header.Get("Content-Type"), "text/html"), "Wrong Content-Type: %s", response.Header.Get("Content-Type"))
 
-		if !bytes.Contains(body, []byte(mockServer.URL)) {
-			t.Errorf("Response doesn't contain the expected link URL\n%s", string(body))
-		}
-		if !bytes.Contains(body, []byte(testTitle)) {
-			t.Errorf("Response doesn't contain the expected link title\n%s", string(body))
-		}
-		if !bytes.Contains(body, []byte(testDescription)) {
-			t.Errorf("Response doesn't contain the expected link description\n%s", string(body))
-		}
-		if !bytes.Contains(body, []byte(time.Now().Format("2006-01-02 "))) {
-			t.Errorf("Response doesn't contain the expected date\n%s", string(body))
-		}
+		assert.Contains(t, string(body), mockServer.URL, "Response doesn't contain the expected link URL")
+		assert.Contains(t, string(body), testTitle, "Response doesn't contain the expected link title")
+		assert.Contains(t, string(body), testDescription, "Response doesn't contain the expected link description")
+		assert.Contains(t, string(body), time.Now().Format("2006-01-02 "), "Response doesn't contain the expected date")
 	})
 
 	t.Run("get single link success", func(t *testing.T) {
 		req := httptest.NewRequest("GET", fmt.Sprintf("/%d", linkId), nil)
 		response, body := testRequest(t, handler, req)
 
-		if status := response.StatusCode; status != http.StatusOK {
-			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
-		}
+		assert.Equal(t, http.StatusOK, response.StatusCode, "Handlers returned wrong status code")
 
-		if contentType := response.Header.Get("Content-Type"); !strings.HasPrefix(contentType, "text/html") {
-			t.Errorf("Wrong Content-Type: %s", contentType)
-		}
+		assert.True(t, strings.HasPrefix(response.Header.Get("Content-Type"), "text/html"), "Wrong Content-Type: %s", response.Header.Get("Content-Type"))
 
-		if !bytes.Contains(body, []byte(mockServer.URL)) {
-			t.Errorf("Response doesn't contain the expected link URL\n%s", string(body))
-		}
-		if !bytes.Contains(body, []byte(testTitle)) {
-			t.Errorf("Response doesn't contain expected title\n%s", string(body))
-		}
-		if !bytes.Contains(body, []byte(testDescription)) {
-			t.Errorf("Response doesn't contain the expected link description\n%s", string(body))
-		}
-		if bytes.Contains(body, []byte("class=\"link-edit\"")) {
-			t.Errorf("Response contain the unexpected edit form")
-		}
+		assert.Contains(t, string(body), mockServer.URL, "Response doesn't contain the expected link URL")
+		assert.Contains(t, string(body), testTitle, "Response doesn't contain expected title")
+		assert.Contains(t, string(body), testDescription, "Response doesn't contain the expected link description")
+		assert.NotContains(t, string(body), "class=\"link-edit\"", "Response contain the unexpected edit form")
 	})
 
 	t.Run("get single link for edit success", func(t *testing.T) {
 		req := httptest.NewRequest("GET", fmt.Sprintf("/%d?edit=1", linkId), nil)
 		response, body := testRequest(t, handler, req)
 
-		if status := response.StatusCode; status != http.StatusOK {
-			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
-		}
+		assert.Equal(t, http.StatusOK, response.StatusCode, "Handlers returned wrong status code")
 
-		if contentType := response.Header.Get("Content-Type"); !strings.HasPrefix(contentType, "text/html") {
-			t.Errorf("Wrong Content-Type: %s", contentType)
-		}
+		assert.True(t, strings.HasPrefix(response.Header.Get("Content-Type"), "text/html"), "Wrong Content-Type: %s", response.Header.Get("Content-Type"))
 
-		if !bytes.Contains(body, []byte(mockServer.URL)) {
-			t.Errorf("Response doesn't contain the expected link URL\n%s", string(body))
-		}
-		if !bytes.Contains(body, []byte(testTitle)) {
-			t.Errorf("Response doesn't contain expected title\n%s", string(body))
-		}
-		if !bytes.Contains(body, []byte(testDescription)) {
-			t.Errorf("Response doesn't contain the expected link description\n%s", string(body))
-		}
-		if !bytes.Contains(body, []byte("class=\"link-edit\"")) {
-			t.Errorf("Response doesn't contain the expected edit form")
-		}
+		assert.Contains(t, string(body), mockServer.URL, "Response doesn't contain the expected link URL")
+		assert.Contains(t, string(body), testTitle, "Response doesn't contain expected title")
+		assert.Contains(t, string(body), testDescription, "Response doesn't contain the expected link description")
+		assert.Contains(t, string(body), "class=\"link-edit\"", "Response doesn't contain the expected edit form")
 	})
 
 	t.Run("get single link as JSON", func(t *testing.T) {
@@ -235,45 +162,30 @@ func TestHandlers(t *testing.T) {
 		req.Header.Set("Accept", "application/json")
 		response, body := testRequest(t, handler, req)
 
-		if status := response.StatusCode; status != http.StatusOK {
-			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
-		}
+		assert.Equal(t, http.StatusOK, response.StatusCode, "Handlers returned wrong status code")
 
-		if contentType := response.Header.Get("Content-Type"); !strings.HasPrefix(contentType, "application/json") {
-			t.Errorf("Wrong Content-Type: %s", contentType)
-		}
+		assert.True(t, strings.HasPrefix(response.Header.Get("Content-Type"), "application/json"), "Wrong Content-Type: %s", response.Header.Get("Content-Type"))
 
 		var data db.Link
-		if err := json.Unmarshal(body, &data); err != nil {
-			t.Errorf("Response doesn't contain the expected JSON\n%s", string(body))
-		}
-		if data.URL != mockServer.URL {
-			t.Errorf("Response doesn't contain the expected link URL\n%s", data.URL)
-		}
-		if data.Title != testTitle {
-			t.Errorf("Response doesn't contain the expected link title\n%s", data.Title)
-		}
-		if data.Description != testDescription {
-			t.Errorf("Response doesn't contain the expected link description\n%s", data.Description)
-		}
+		err := json.Unmarshal(body, &data)
+		assert.NoError(t, err, "Response doesn't contain the expected JSON")
+		assert.Equal(t, mockServer.URL, data.URL)
+		assert.Equal(t, testTitle, data.Title)
+		assert.Equal(t, testDescription, data.Description)
 	})
 
 	t.Run("get single link invalid id", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/invalid", nil)
 		response, _ := testRequest(t, handler, req)
 
-		if status := response.StatusCode; status != http.StatusBadRequest {
-			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusBadRequest)
-		}
+		assert.Equal(t, http.StatusBadRequest, response.StatusCode, "Handlers returned wrong status code")
 	})
 
 	t.Run("get single link not found", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/999", nil)
 		response, _ := testRequest(t, handler, req)
 
-		if status := response.StatusCode; status != http.StatusNotFound {
-			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusNotFound)
-		}
+		assert.Equal(t, http.StatusNotFound, response.StatusCode, "Handlers returned wrong status code")
 	})
 
 	t.Run("patch link success", func(t *testing.T) {
@@ -281,33 +193,19 @@ func TestHandlers(t *testing.T) {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		response, body := testRequest(t, handler, req)
 
-		if status := response.StatusCode; status != http.StatusOK {
-			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
-		}
+		assert.Equal(t, http.StatusOK, response.StatusCode, "Handlers returned wrong status code")
 
-		if contentType := response.Header.Get("Content-Type"); !strings.HasPrefix(contentType, "text/html") {
-			t.Errorf("Wrong Content-Type: %s", contentType)
-		}
+		assert.True(t, strings.HasPrefix(response.Header.Get("Content-Type"), "text/html"), "Wrong Content-Type: %s", response.Header.Get("Content-Type"))
 
-		if !bytes.Contains(body, []byte("Updated Title")) {
-			t.Errorf("Response doesn't contain the updated title\n%s", string(body))
-		}
+		assert.Contains(t, string(body), "Updated Title", "Response doesn't contain the updated title")
 
-		if !bytes.Contains(body, []byte("Updated Description")) {
-			t.Errorf("Response doesn't contain the updated description\n%s", string(body))
-		}
+		assert.Contains(t, string(body), "Updated Description", "Response doesn't contain the updated description")
 
 		// Verify the link was actually updated in the database
 		updatedLink, err := database.GetLink(linkId)
-		if err != nil {
-			t.Fatalf("Failed to get updated link: %v", err)
-		}
-		if updatedLink.Title != "Updated Title" {
-			t.Errorf("Link title was not updated in database: got %v want %v", updatedLink.Title, "Updated Title")
-		}
-		if updatedLink.Description != "Updated Description" {
-			t.Errorf("Link description was not updated in database: got %v want %v", updatedLink.Description, "Updated Description")
-		}
+		require.NoError(t, err, "Failed to get updated link")
+		assert.Equal(t, "Updated Title", updatedLink.Title, "Link title was not updated in database")
+		assert.Equal(t, "Updated Description", updatedLink.Description, "Link description was not updated in database")
 	})
 
 	t.Run("patch link success JSON", func(t *testing.T) {
@@ -316,39 +214,22 @@ func TestHandlers(t *testing.T) {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		response, body := testRequest(t, handler, req)
 
-		if status := response.StatusCode; status != http.StatusOK {
-			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
-		}
+		assert.Equal(t, http.StatusOK, response.StatusCode, "Handlers returned wrong status code")
 
-		if contentType := response.Header.Get("Content-Type"); !strings.HasPrefix(contentType, "application/json") {
-			t.Errorf("Wrong Content-Type: %s", contentType)
-		}
+		assert.True(t, strings.HasPrefix(response.Header.Get("Content-Type"), "application/json"), "Wrong Content-Type: %s", response.Header.Get("Content-Type"))
 
 		var data db.Link
-		if err := json.Unmarshal(body, &data); err != nil {
-			t.Errorf("Response doesn't contain the expected JSON\n%s", string(body))
-		}
-		if data.URL != mockServer.URL {
-			t.Errorf("Response doesn't contain the expected link URL\n%s", data.URL)
-		}
-		if data.Title != "Updated Title" {
-			t.Errorf("Response doesn't contain the expected link title\n%s", data.Title)
-		}
-		if data.Description != "Updated Description" {
-			t.Errorf("Response doesn't contain the expected link description\n%s", data.Description)
-		}
+		err := json.Unmarshal(body, &data)
+		assert.NoError(t, err, "Response doesn't contain the expected JSON")
+		assert.Equal(t, mockServer.URL, data.URL)
+		assert.Equal(t, "Updated Title", data.Title)
+		assert.Equal(t, "Updated Description", data.Description)
 
 		// Verify the link was actually updated in the database
 		updatedLink, err := database.GetLink(linkId)
-		if err != nil {
-			t.Fatalf("Failed to get updated link: %v", err)
-		}
-		if updatedLink.Title != "Updated Title" {
-			t.Errorf("Link title was not updated in database: got %v want %v", updatedLink.Title, "Updated Title")
-		}
-		if updatedLink.Description != "Updated Description" {
-			t.Errorf("Link description was not updated in database: got %v want %v", updatedLink.Description, "Updated Description")
-		}
+		require.NoError(t, err, "Failed to get updated link")
+		assert.Equal(t, "Updated Title", updatedLink.Title, "Link title was not updated in database")
+		assert.Equal(t, "Updated Description", updatedLink.Description, "Link description was not updated in database")
 	})
 
 	t.Run("patch link invalid id", func(t *testing.T) {
@@ -356,9 +237,7 @@ func TestHandlers(t *testing.T) {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		response, _ := testRequest(t, handler, req)
 
-		if status := response.StatusCode; status != http.StatusBadRequest {
-			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusBadRequest)
-		}
+		assert.Equal(t, http.StatusBadRequest, response.StatusCode, "Handlers returned wrong status code")
 	})
 
 	t.Run("patch link not found", func(t *testing.T) {
@@ -366,9 +245,7 @@ func TestHandlers(t *testing.T) {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		response, _ := testRequest(t, handler, req)
 
-		if status := response.StatusCode; status != http.StatusNotFound {
-			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusNotFound)
-		}
+		assert.Equal(t, http.StatusNotFound, response.StatusCode, "Handlers returned wrong status code")
 	})
 
 	t.Run("patch link missing title", func(t *testing.T) {
@@ -376,9 +253,7 @@ func TestHandlers(t *testing.T) {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		response, _ := testRequest(t, handler, req)
 
-		if status := response.StatusCode; status != http.StatusBadRequest {
-			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusBadRequest)
-		}
+		assert.Equal(t, http.StatusBadRequest, response.StatusCode, "Handlers returned wrong status code")
 	})
 
 	t.Run("patch link too long title", func(t *testing.T) {
@@ -386,9 +261,7 @@ func TestHandlers(t *testing.T) {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		response, _ := testRequest(t, handler, req)
 
-		if status := response.StatusCode; status != http.StatusBadRequest {
-			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusBadRequest)
-		}
+		assert.Equal(t, http.StatusBadRequest, response.StatusCode, "Handlers returned wrong status code")
 	})
 
 	t.Run("patch link too long description", func(t *testing.T) {
@@ -396,42 +269,32 @@ func TestHandlers(t *testing.T) {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		response, _ := testRequest(t, handler, req)
 
-		if status := response.StatusCode; status != http.StatusBadRequest {
-			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusBadRequest)
-		}
+		assert.Equal(t, http.StatusBadRequest, response.StatusCode, "Handlers returned wrong status code")
 	})
 
 	t.Run("delete link success", func(t *testing.T) {
 		req := httptest.NewRequest("DELETE", fmt.Sprintf("/%d", linkId), nil)
 		response, _ := testRequest(t, handler, req)
 
-		if status := response.StatusCode; status != http.StatusOK {
-			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
-		}
+		assert.Equal(t, http.StatusOK, response.StatusCode, "Handlers returned wrong status code")
 
 		// Verify link was deleted
 		_, err = database.GetLink(1)
-		if err == nil {
-			t.Error("Link should have been deleted")
-		}
+		assert.Error(t, err, "Link should have been deleted")
 	})
 
 	t.Run("delete link invalid id", func(t *testing.T) {
 		req := httptest.NewRequest("DELETE", "/invalid", nil)
 		response, _ := testRequest(t, handler, req)
 
-		if status := response.StatusCode; status != http.StatusBadRequest {
-			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusBadRequest)
-		}
+		assert.Equal(t, http.StatusBadRequest, response.StatusCode, "Handlers returned wrong status code")
 	})
 
 	t.Run("delete link not found", func(t *testing.T) {
 		req := httptest.NewRequest("DELETE", "/999", nil)
 		response, _ := testRequest(t, handler, req)
 
-		if status := response.StatusCode; status != http.StatusNotFound {
-			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusNotFound)
-		}
+		assert.Equal(t, http.StatusNotFound, response.StatusCode, "Handlers returned wrong status code")
 	})
 
 	t.Run("add note success", func(t *testing.T) {
@@ -439,25 +302,16 @@ func TestHandlers(t *testing.T) {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		response, body := testRequest(t, handler, req)
 
-		if status := response.StatusCode; status != http.StatusCreated {
-			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusCreated)
-		}
+		assert.Equal(t, http.StatusCreated, response.StatusCode, "Handlers returned wrong status code")
 
 		locationHeader := response.Header.Get("Location")
-		if linkIdString, found := strings.CutPrefix(locationHeader, "/"); !found {
-			t.Errorf("Response Location header doesn't has correct format: '%s'", locationHeader)
-		} else {
-			if linkId, err = strconv.ParseInt(linkIdString, 10, 64); err != nil {
-				t.Errorf("Failed to convert note ID: %v", err)
-			}
-		}
+		linkIdString, found := strings.CutPrefix(locationHeader, "/")
+		require.True(t, found, "Response Location header doesn't has correct format: '%s'", locationHeader)
+		linkId, err = strconv.ParseInt(linkIdString, 10, 64)
+		require.NoError(t, err, "Failed to convert note ID")
 
-		if !bytes.Contains(body, []byte("NoteTitle")) {
-			t.Errorf("Response doesn't contain the expected note title\n%s", string(body))
-		}
-		if !bytes.Contains(body, []byte("NoteText")) {
-			t.Errorf("Response doesn't contain the expected note text\n%s", string(body))
-		}
+		assert.Contains(t, string(body), "NoteTitle", "Response doesn't contain the expected note title")
+		assert.Contains(t, string(body), "NoteText", "Response doesn't contain the expected note text")
 	})
 
 	t.Run("add note missing text", func(t *testing.T) {
@@ -465,29 +319,19 @@ func TestHandlers(t *testing.T) {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		response, _ := testRequest(t, handler, req)
 
-		if status := response.StatusCode; status != http.StatusBadRequest {
-			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusBadRequest)
-		}
+		assert.Equal(t, http.StatusBadRequest, response.StatusCode, "Handlers returned wrong status code")
 	})
 
 	t.Run("get single note success", func(t *testing.T) {
 		req := httptest.NewRequest("GET", fmt.Sprintf("/%d", linkId), nil)
 		response, body := testRequest(t, handler, req)
 
-		if status := response.StatusCode; status != http.StatusOK {
-			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
-		}
+		assert.Equal(t, http.StatusOK, response.StatusCode, "Handlers returned wrong status code")
 
-		if contentType := response.Header.Get("Content-Type"); !strings.HasPrefix(contentType, "text/html") {
-			t.Errorf("Wrong Content-Type: %s", contentType)
-		}
+		assert.True(t, strings.HasPrefix(response.Header.Get("Content-Type"), "text/html"), "Wrong Content-Type: %s", response.Header.Get("Content-Type"))
 
-		if !bytes.Contains(body, []byte("NoteTitle")) {
-			t.Errorf("Response doesn't contain expected title\n%s", string(body))
-		}
-		if !bytes.Contains(body, []byte("NoteText")) {
-			t.Errorf("Response doesn't contain the expected note\n%s", string(body))
-		}
+		assert.Contains(t, string(body), "NoteTitle", "Response doesn't contain expected title")
+		assert.Contains(t, string(body), "NoteText", "Response doesn't contain the expected note")
 	})
 
 	t.Run("get single note as JSON", func(t *testing.T) {
@@ -495,58 +339,39 @@ func TestHandlers(t *testing.T) {
 		req.Header.Set("Accept", "application/json")
 		response, body := testRequest(t, handler, req)
 
-		if status := response.StatusCode; status != http.StatusOK {
-			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
-		}
+		assert.Equal(t, http.StatusOK, response.StatusCode, "Handlers returned wrong status code")
 
-		if contentType := response.Header.Get("Content-Type"); !strings.HasPrefix(contentType, "application/json") {
-			t.Errorf("Wrong Content-Type: %s", contentType)
-		}
+		assert.True(t, strings.HasPrefix(response.Header.Get("Content-Type"), "application/json"), "Wrong Content-Type: %s", response.Header.Get("Content-Type"))
 
 		var data db.Link
-		if err := json.Unmarshal(body, &data); err != nil {
-			t.Errorf("Response doesn't contain the expected JSON\n%s", string(body))
-		}
-		if !strings.HasPrefix(data.URL, "note:") {
-			t.Errorf("Response doesn't contain the expected note URL\n%s", data.URL)
-		}
-		if data.Title != "NoteTitle" {
-			t.Errorf("Response doesn't contain the expected note title\n%s", data.Title)
-		}
-		if data.Description != "NoteText" {
-			t.Errorf("Response doesn't contain the expected note\n%s", data.Description)
-		}
+		err := json.Unmarshal(body, &data)
+		assert.NoError(t, err, "Response doesn't contain the expected JSON")
+		assert.True(t, strings.HasPrefix(data.URL, "note:"), "Response doesn't contain the expected note URL")
+		assert.Equal(t, "NoteTitle", data.Title)
+		assert.Equal(t, "NoteText", data.Description)
 	})
 
 	t.Run("bookmarklet save success", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/bookmarklet?url="+url.QueryEscape(mockServer.URL+"/bookmarklet-page"), nil)
 		response, body := testRequest(t, handler, req)
 
-		if status := response.StatusCode; status != http.StatusCreated {
-			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusCreated)
-		}
+		assert.Equal(t, http.StatusCreated, response.StatusCode, "Handlers returned wrong status code")
 
-		if !bytes.Contains(body, []byte("Link saved!")) {
-			t.Errorf("Response doesn't contain success message\n%s", string(body))
-		}
+		assert.Contains(t, string(body), "Link saved!", "Response doesn't contain success message")
 	})
 
 	t.Run("bookmarklet save missing url", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/bookmarklet", nil)
 		response, _ := testRequest(t, handler, req)
 
-		if status := response.StatusCode; status != http.StatusBadRequest {
-			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusBadRequest)
-		}
+		assert.Equal(t, http.StatusBadRequest, response.StatusCode, "Handlers returned wrong status code")
 	})
 
 	t.Run("bookmarklet save invalid url", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/bookmarklet?url=not-a-valid-url", nil)
 		response, _ := testRequest(t, handler, req)
 
-		if status := response.StatusCode; status != http.StatusBadRequest {
-			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusBadRequest)
-		}
+		assert.Equal(t, http.StatusBadRequest, response.StatusCode, "Handlers returned wrong status code")
 	})
 
 	t.Run("bookmarklet save duplicate url", func(t *testing.T) {
@@ -554,22 +379,16 @@ func TestHandlers(t *testing.T) {
 		req := httptest.NewRequest("GET", "/bookmarklet?url="+url.QueryEscape(mockServer.URL+"/bookmarklet-page"), nil)
 		response, _ := testRequest(t, handler, req)
 
-		if status := response.StatusCode; status != http.StatusConflict {
-			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusConflict)
-		}
+		assert.Equal(t, http.StatusConflict, response.StatusCode, "Handlers returned wrong status code")
 	})
 
 	t.Run("main page contains bookmarklet link", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/", nil)
 		response, body := testRequest(t, handler, req)
 
-		if status := response.StatusCode; status != http.StatusOK {
-			t.Errorf("Handlers returned wrong status code: got %v want %v", status, http.StatusOK)
-		}
+		assert.Equal(t, http.StatusOK, response.StatusCode, "Handlers returned wrong status code")
 
-		if !bytes.Contains(body, []byte("Save to Link Saver")) {
-			t.Errorf("Response doesn't contain bookmarklet link\n%s", string(body))
-		}
+		assert.Contains(t, string(body), "Save to Link Saver", "Response doesn't contain bookmarklet link")
 	})
 }
 
@@ -578,9 +397,7 @@ func testRequest(t *testing.T, handler http.Handler, req *http.Request) (*http.R
 	handler.ServeHTTP(rr, req)
 	result := rr.Result()
 	body, err := io.ReadAll(result.Body)
-	if err != nil {
-		t.Fatalf("Failed to read response body: %v", err)
-	}
+	require.NoError(t, err, "Failed to read response body")
 	_ = result.Body.Close()
 	return result, body
 }
@@ -663,25 +480,18 @@ func Test_extractTitleAndDescriptionAndBodyFromURL(t *testing.T) {
 
 			parsedURL, _ := url.Parse(server.URL)
 			title, description, body, err := handlers.extractTitleAndDescriptionAndBodyFromURL(parsedURL)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("extractTitleAndDescriptionAndBodyFromURL() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
 			}
 			if tt.title == "server.URL" {
-				if !strings.HasSuffix(server.URL, title) {
-					t.Errorf("extractTitleAndDescriptionAndBodyFromURL() title = '%v', title '%v'", title, server.URL)
-				}
+				assert.True(t, strings.HasSuffix(server.URL, title), "extractTitleAndDescriptionAndBodyFromURL() title = '%v', title '%v'", title, server.URL)
 			} else {
-				if title != tt.title {
-					t.Errorf("extractTitleAndDescriptionAndBodyFromURL() title = '%v', title '%v'", title, tt.title)
-				}
+				assert.Equal(t, tt.title, title)
 			}
-			if description != tt.description {
-				t.Errorf("extractTitleAndDescriptionAndBodyFromURL() description = '%v', description '%v'", description, tt.description)
-			}
-			if !bytes.HasPrefix(body, tt.body) {
-				t.Errorf("extractTitleAndDescriptionAndBodyFromURL() body = '%v', body '%v'", string(body), string(tt.body))
-			}
+			assert.Equal(t, tt.description, description)
+			assert.True(t, bytes.HasPrefix(body, tt.body), "extractTitleAndDescriptionAndBodyFromURL() body = '%v', body '%v'", string(body), string(tt.body))
 		})
 	}
 }
@@ -736,15 +546,9 @@ func Test_extractTitleFromURL(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			urlParsed, err := url.Parse(tt.rawURL)
-			if (err != nil) != tt.hasError {
-				t.Fatalf("url.Parse() error = %v, hasError %v", err, tt.hasError)
-			}
-			if err == nil {
-				title := handlers.extractTitleFromURL(urlParsed)
-				if title != tt.expected {
-					t.Errorf("extractTitleFromURL() got = %v, want %v", title, tt.expected)
-				}
-			}
+			require.NoError(t, err)
+			title := handlers.extractTitleFromURL(urlParsed)
+			assert.Equal(t, tt.expected, title)
 		})
 	}
 }

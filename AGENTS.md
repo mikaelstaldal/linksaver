@@ -40,12 +40,13 @@ go test ./...
 To run tests for a specific package with verbose output:
 ```bash
 go test -v ./cmd/linksaver/db
-go test -v ./cmd/linksaver/
+go test -v ./cmd/linksaver/web
 ```
 
 ### Test Structure
 - Tests use temporary database files that are removed after test completion
 - HTTP handlers are tested using `net/http/httptest` package
+- Assertions are made using `github.com/stretchr/testify/assert` and `github.com/stretchr/testify/require`
 - Each test focuses on a specific functionality (e.g., adding, retrieving, or deleting links)
 
 ### Adding New Tests
@@ -55,11 +56,11 @@ go test -v ./cmd/linksaver/
    - Clean up after the test with `defer os.Remove(dbFile)`
    - Test the full lifecycle of operations
 
-3. For handler tests, follow the pattern in `cmd/linksaver/handlers_test.go`:
+3. For handler tests, follow the pattern in `cmd/linksaver/web/handlers_test.go`:
    - Create a test database
    - Initialize the handler with the test database and templates
    - Use `httptest.NewRecorder()` to capture responses
-   - Verify both status codes and response content
+   - Verify both status codes and response content using `testify` assertions
 
 ### Example Test
 Here's a simple example of testing the ListLinks handler:
@@ -72,26 +73,20 @@ func TestListLinks(t *testing.T) {
     
     // Initialize the database and add test data
     database, _ := db.InitDB(dbFile)
-    database.AddLink("https://example.com", "Example Website")
+    database.AddLink("https://example.com", "Example Website", "", nil)
     
-    // Parse templates and create handler
-    tmpl := template.Must(template.ParseFS(ui.Files, "templates/*.html"))
-    h := &Handler{DB: database, Templates: tmpl}
+    // Create handler
+    h := NewHandlers(".", database, "")
     
     // Create request and response recorder
-    req, _ := http.NewRequest("GET", "/", nil)
+    req := httptest.NewRequest("GET", "/", nil)
     rr := httptest.NewRecorder()
     
     // Call the handler and check response
-    http.HandlerFunc(h.ListLinks).ServeHTTP(rr, req)
+    h.ListLinks(rr, req)
     
-    if status := rr.Code; status != http.StatusOK {
-        t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
-    }
-    
-    if !strings.Contains(rr.Body.String(), "Example Website") {
-        t.Errorf("Handler response doesn't contain the expected link title")
-    }
+    assert.Equal(t, http.StatusOK, rr.Code)
+    assert.Contains(t, rr.Body.String(), "Example Website")
 }
 ```
 
@@ -102,7 +97,7 @@ func TestListLinks(t *testing.T) {
 - `cmd/linksaver/db/`: Database operations and models
   - `db.go`: Database initialization and CRUD operations
   - `db_test.go`: Tests for database operations
-- `cmd/linksaver/`: HTTP request handlers
+- `cmd/linksaver/web/`: HTTP request handlers
   - `handlers.go`: Handler implementations for routes
   - `handlers_test.go`: Tests for handlers
 - `ui/templates/`: HTML templates
@@ -131,10 +126,10 @@ CREATE TABLE IF NOT EXISTS links (
 When adding new features:
 1. Add necessary database operations in `cmd/linksaver/db/db.go`
 2. Write tests for the new operations in `cmd/linksaver/db/db_test.go`
-3. Implement handlers for new routes in `cmd/linksaver/handlers.go`
-4. Write tests for the new handlers in `cmd/linksaver/handlers_test.go`
+3. Implement handlers for new routes in `cmd/linksaver/web/handlers.go`
+4. Write tests for the new handlers in `cmd/linksaver/web/handlers_test.go`
 5. Create or modify templates as needed in the `ui/templates/` directory
-6. Update route configuration in `cmd/linksaver/main.go`
+6. Update route configuration in `cmd/linksaver/web/handlers.go` (Routes method)
 
 ### Debugging Tips
 - Use `log.Printf()` for debugging information
