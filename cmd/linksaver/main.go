@@ -32,6 +32,7 @@ func main() {
 	dataDir := flag.String("data", "data", "directory to store data in")
 	basicAuthFile := flag.String("basic-auth-file", "", "enable HTTP basic auth with username and password from given file in htpasswd format (bcrypt only)")
 	basicAuthRealm := flag.String("basic-auth-realm", "linksaver", "realm for HTTP basic auth")
+	publicURL := flag.String("public-url", "", "Public-facing base URL for CSRF validation, e.g. https://example.com (defaults to http://<addr>:<port>)")
 	flag.Parse()
 
 	if *port < 1 || *port > 65535 {
@@ -83,7 +84,12 @@ func main() {
 
 	// Initialize handlers
 	mux := web.NewHandlers(executableDir, database, filepath.Join(*dataDir, screenshotsDir)).Routes()
-	var root = csrf.Middleware(mux)
+
+	serverOrigin, err := csrf.ResolveServerOrigin(*publicURL, *addr, *port)
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+	var root = csrf.Middleware(serverOrigin)(mux)
 
 	if authMiddleware != nil {
 		root = authMiddleware(root)

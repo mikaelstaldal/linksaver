@@ -25,6 +25,7 @@ import (
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/chromedp"
 	"github.com/ledongthuc/pdf"
+	"github.com/mikaelstaldal/go-server-common/httputil"
 	"github.com/mikaelstaldal/linksaver/cmd/linksaver/db"
 	"github.com/mikaelstaldal/linksaver/ui"
 	"golang.org/x/net/html"
@@ -74,10 +75,21 @@ func newHandlers(executableDir string, database *db.DB, screenshotsDir string, f
 		log.Fatalf("No templates found")
 	}
 
-	// Create an HTTP client with improved configuration to handle various websites
+	// Create an HTTP client with improved configuration to handle various websites,
+	// hardened against SSRF: the dialer validates the resolved IP at connect time
+	// (closing the TOCTOU / DNS-rebinding window between validation and fetch) and
+	// CheckRedirect re-validates every redirect target. In tests, loopback addresses
+	// (the mock httptest servers) must remain reachable, so the safe dialer and
+	// redirect validation are skipped when forTesting is set.
+	dialer := &net.Dialer{Timeout: 10 * time.Second}
+	dialContext := dialer.DialContext
+	if !forTesting {
+		dialContext = httputil.SafeDialContext(dialer)
+	}
 	client := &http.Client{
 		Timeout: 10 * time.Second,
 		Transport: &http.Transport{
+			DialContext: dialContext,
 			// Force HTTP/1.1 to avoid HTTP/2 issues with some websites
 			ForceAttemptHTTP2: false,
 			TLSClientConfig: &tls.Config{
@@ -87,6 +99,15 @@ func newHandlers(executableDir string, database *db.DB, screenshotsDir string, f
 			IdleConnTimeout:       30 * time.Second,
 			TLSHandshakeTimeout:   5 * time.Second,
 			ResponseHeaderTimeout: 5 * time.Second,
+		},
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if len(via) >= 10 {
+				return fmt.Errorf("stopped after 10 redirects")
+			}
+			if forTesting {
+				return nil
+			}
+			return httputil.ValidateExternalURL(req.URL.String())
 		},
 	}
 
@@ -320,40 +341,7 @@ func (h *Handlers) validateURL(u *url.URL) error {
 		return nil
 	}
 
-	return validateExternalURL(u)
-}
-
-// validateExternalURL checks that the URL is safe to fetch (not localhost or private IPs).
-func validateExternalURL(u *url.URL) error {
-	if u.Scheme != "http" && u.Scheme != "https" {
-		return fmt.Errorf("URL scheme must be http or https")
-	}
-	hostname := u.Hostname()
-	if hostname == "" {
-		return fmt.Errorf("URL must have a hostname")
-	}
-	// Block localhost names
-	lower := strings.ToLower(hostname)
-	if lower == "localhost" || strings.HasSuffix(lower, ".localhost") {
-		return fmt.Errorf("URL must not point to localhost")
-	}
-
-	// Resolve hostname through DNS with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	ips, err := net.DefaultResolver.LookupIPAddr(ctx, hostname)
-	if err != nil {
-		return fmt.Errorf("DNS lookup failed for %s: %v", hostname, err)
-	}
-
-	// Check if any resolved IP is private
-	for _, ip := range ips {
-		if ip.IP.IsLoopback() || ip.IP.IsPrivate() || ip.IP.IsLinkLocalUnicast() || ip.IP.IsLinkLocalMulticast() || ip.IP.IsUnspecified() {
-			return fmt.Errorf("URL must not point to a private or local address")
-		}
-	}
-	return nil
+	return httputil.ValidateExternalURL(u.String())
 }
 
 // extractTitleAndDescriptionAndBodyFromURL fetches the URL and extracts the page title from HTML.
