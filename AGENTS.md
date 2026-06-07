@@ -5,7 +5,7 @@ This document provides essential information for developers working on the Link 
 ## Build/Configuration Instructions
 
 ### Prerequisites
-- Go 1.25 or later
+- Go 1.26 or later
 - SQLite support (provided by modernc.org/sqlite)
 
 ### Building the Project

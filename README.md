@@ -118,7 +118,7 @@ The application provides the following HTTP endpoints:
 
 ## Dependencies
 
-- **Go 1.25**
+- **Go 1.26**
 - **modernc.org/sqlite**: Pure Go SQLite driver
 - **htmx**: High power tools for HTML
 - **_hyperscript**: An easy & approachable language for modern web front-ends
@@ -127,7 +127,7 @@ The application provides the following HTTP endpoints:
 
 ## License
 
-Copyright 2025 Mikael Ståldal.
+Copyright 2025-2026 Mikael Ståldal.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
