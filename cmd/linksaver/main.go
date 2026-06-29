@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"time"
 
 	"github.com/mikaelstaldal/go-server-common/auth"
@@ -27,6 +28,7 @@ func main() {
 	executableDir := filepath.Dir(executablePath)
 
 	// Define command line flags
+	version := flag.Bool("version", false, "print version information and exit")
 	port := flag.Int("port", 8080, "port to listen on")
 	addr := flag.String("addr", "127.0.0.1", "address to listen on")
 	dataDir := flag.String("data", "data", "directory to store data in")
@@ -34,6 +36,11 @@ func main() {
 	basicAuthRealm := flag.String("basic-auth-realm", "linksaver", "realm for HTTP basic auth")
 	publicURL := flag.String("public-url", "", "Public-facing base URL for CSRF validation, e.g. https://example.com (defaults to http://<addr>:<port>)")
 	flag.Parse()
+
+	if *version {
+		printVersion()
+		return
+	}
 
 	if *port < 1 || *port > 65535 {
 		log.Fatalf("Invalid port number: %d. Must be between 1 and 65535", *port)
@@ -107,5 +114,35 @@ func main() {
 	}
 	if err := server.ListenAndServe(); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
+	}
+}
+
+func printVersion() {
+	fmt.Println("LinkSaver")
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return
+	}
+	settings := make(map[string]string, len(info.Settings))
+	for _, s := range info.Settings {
+		settings[s.Key] = s.Value
+	}
+	if vcs, ok := settings["vcs"]; ok {
+		fmt.Printf("%s ", vcs)
+	}
+	modified := settings["vcs.modified"] == "true"
+	if rev, ok := settings["vcs.revision"]; ok {
+		if modified {
+			fmt.Printf("revision: %s (dirty)\n", rev)
+		} else {
+			fmt.Printf("revision: %s\n", rev)
+		}
+	}
+	if t, ok := settings["vcs.time"]; ok {
+		if parsedTime, err := time.Parse(time.RFC3339, t); err == nil {
+			fmt.Printf("updated at: %s\n", parsedTime.Local().Format("2006-01-02 15:04:05"))
+		} else {
+			fmt.Printf("updated at: %s\n", t)
+		}
 	}
 }
