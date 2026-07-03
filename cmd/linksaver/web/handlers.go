@@ -379,6 +379,10 @@ func (h *Handlers) extractTitleAndDescriptionAndBodyFromURL(url *url.URL) (strin
 			log.Printf("HTTP 403 with HTML body fetching %s (bot detection?), saving with unknown title", url)
 			return "(unknown)", "", nil, nil
 		}
+		if resp.StatusCode == http.StatusTooManyRequests {
+			log.Printf("HTTP 429 fetching %s (bot detection?), saving with unknown title", url)
+			return "(unknown)", "", nil, nil
+		}
 		return "", "", nil, fmt.Errorf("HTTP error: %d", resp.StatusCode)
 	}
 	if strings.HasPrefix(strings.ToLower(contentType), "text/html") || strings.HasPrefix(strings.ToLower(contentType), "application/xhtml+xml") {
