@@ -1,6 +1,6 @@
-# Link Saver Project Guidelines
+# MyLinks Project Guidelines
 
-This document provides essential information for developers working on the Link Saver project.
+This document provides essential information for developers working on the MyLinks project.
 
 ## Build/Configuration Instructions
 
@@ -13,11 +13,11 @@ This document provides essential information for developers working on the Link 
 2. Navigate to the project root
 3. Build the application:
    ```bash
-   go build ./cmd/linksaver
+   go build ./cmd/mylinks
    ```
 4. Run the application:
    ```bash
-   ./linksaver
+   ./mylinks
    ```
 
 ### Configuration Options
@@ -26,7 +26,7 @@ The application accepts the following command-line flags:
 
 Example:
 ```bash
-./linksaver -port 9000
+./mylinks -port 9000
 ```
 
 ## Testing Information
@@ -39,8 +39,8 @@ go test ./...
 
 To run tests for a specific package with verbose output:
 ```bash
-go test -v ./cmd/linksaver/db
-go test -v ./cmd/linksaver/web
+go test -v ./cmd/mylinks/db
+go test -v ./cmd/mylinks/web
 ```
 
 ### Test Structure
@@ -51,12 +51,12 @@ go test -v ./cmd/linksaver/web
 
 ### Adding New Tests
 1. Create a test file with the naming convention `*_test.go` in the relevant package directory
-2. For database tests, follow the pattern in `cmd/linksaver/db/db_test.go`:
+2. For database tests, follow the pattern in `cmd/mylinks/db/db_test.go`:
    - Use a temporary database file
    - Clean up after the test with `defer os.Remove(dbFile)`
    - Test the full lifecycle of operations
 
-3. For handler tests, follow the pattern in `cmd/linksaver/web/handlers_test.go`:
+3. For handler tests, follow the pattern in `cmd/mylinks/web/handlers_test.go`:
    - Create a test database
    - Initialize the handler with the test database and templates
    - Use `httptest.NewRecorder()` to capture responses
@@ -93,11 +93,11 @@ func TestListLinks(t *testing.T) {
 ## Additional Development Information
 
 ### Project Structure
-- `cmd/linksaver/main.go`: Application entry point, server configuration, and route setup
-- `cmd/linksaver/db/`: Database operations and models
+- `cmd/mylinks/main.go`: Application entry point, server configuration, and route setup
+- `cmd/mylinks/db/`: Database operations and models
   - `db.go`: Database initialization and CRUD operations
   - `db_test.go`: Tests for database operations
-- `cmd/linksaver/web/`: HTTP request handlers
+- `cmd/mylinks/web/`: HTTP request handlers
   - `handlers.go`: Handler implementations for routes
   - `handlers_test.go`: Tests for handlers
 - `ui/templates/`: HTML templates
@@ -124,17 +124,17 @@ CREATE TABLE IF NOT EXISTS links (
 
 ### Adding New Features
 When adding new features:
-1. Add necessary database operations in `cmd/linksaver/db/db.go`
-2. Write tests for the new operations in `cmd/linksaver/db/db_test.go`
-3. Implement handlers for new routes in `cmd/linksaver/web/handlers.go`
-4. Write tests for the new handlers in `cmd/linksaver/web/handlers_test.go`
+1. Add necessary database operations in `cmd/mylinks/db/db.go`
+2. Write tests for the new operations in `cmd/mylinks/db/db_test.go`
+3. Implement handlers for new routes in `cmd/mylinks/web/handlers.go`
+4. Write tests for the new handlers in `cmd/mylinks/web/handlers_test.go`
 5. Create or modify templates as needed in the `ui/templates/` directory
-6. Update route configuration in `cmd/linksaver/web/handlers.go` (Routes method)
+6. Update route configuration in `cmd/mylinks/web/handlers.go` (Routes method)
 
 ### Debugging Tips
 - Use `log.Printf()` for debugging information
 - For database issues, you can examine the SQLite file directly using the SQLite CLI:
   ```bash
-  sqlite3 linksaver.sqlite
+  sqlite3 mylinks.sqlite
   ```
 - For template rendering issues, check the HTML source in the browser

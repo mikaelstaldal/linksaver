@@ -1,6 +1,6 @@
 #include <tunables/global>
 
-profile linksaver ${PATH_TO_EXECUTABLE}/linksaver {
+profile mylinks ${PATH_TO_EXECUTABLE}/mylinks {
     #include <abstractions/base>
     #include <abstractions/consoles>
 
@@ -17,7 +17,7 @@ profile linksaver ${PATH_TO_EXECUTABLE}/linksaver {
 
     signal (receive) set=(int,term,kill),
 
-    ${PATH_TO_EXECUTABLE}/linksaver rm,
+    ${PATH_TO_EXECUTABLE}/mylinks rm,
 
     ${PATH_TO_DATA}/ r,
     ${PATH_TO_DATA}/* rwk,

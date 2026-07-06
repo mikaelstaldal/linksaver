@@ -14,6 +14,6 @@ while getopts "o:" opt; do
   esac
 done
 
-go build -trimpath -buildvcs=true -tags netgo $OUTPUT_FLAG ./cmd/linksaver/
+go build -trimpath -buildvcs=true -tags netgo $OUTPUT_FLAG ./cmd/mylinks/
 go test ./...
 golangci-lint run ./...

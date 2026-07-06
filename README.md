@@ -1,7 +1,7 @@
-# Link Saver
+# MyLinks
 
 A simple and efficient web application for saving and managing your favorite links. 
-Link Saver automatically extracts page title, description and optionally screenshots from URLs and 
+MyLinks automatically extracts page title, description and optionally screenshots from URLs and 
 provides a web interface for organizing your bookmarks.
 
 You can also save short notes which are not connected to any particular URL along with your bookmarks.
@@ -10,8 +10,8 @@ You can also save short notes which are not connected to any particular URL alon
 
 In addition to the built-in web interface, there is also 
 
-* A [native Android app](https://github.com/mikaelstaldal/linksaver-android)
-* A [desktop application](https://github.com/mikaelstaldal/linksaver-desktop)
+* A [native Android app](https://github.com/mikaelstaldal/mylinks-android)
+* A [desktop application](https://github.com/mikaelstaldal/mylinks-desktop)
 
 ## Features
 
@@ -25,20 +25,20 @@ In addition to the built-in web interface, there is also
 
 1. Build the image:
    ```bash
-   docker build -t linksaver .
+   docker build -t mylinks .
    ```
 2. Run the container without authentication, listing on localhost only:
    ```bash
-   docker run --mount "type=bind,src=$(pwd)/data,dst=/data" --cap-drop ALL --security-opt no-new-privileges -p 127.0.0.1:8080:8080 linksaver
+   docker run --mount "type=bind,src=$(pwd)/data,dst=/data" --cap-drop ALL --security-opt no-new-privileges -p 127.0.0.1:8080:8080 mylinks
    ```
 3. Run the container with HTTP basic authentication, listing externally:
    ```bash
    htpasswd -cBC 12 pwfile my_username
-   docker run --mount "type=bind,src=$(pwd)/pwfile,dst=/pwfile" --mount "type=bind,src=$(pwd)/data,dst=/data" --cap-drop ALL --security-opt no-new-privileges -p 8080:8080 linksaver -basic-auth-file /pwfile -basic-auth-realm my-realm
+   docker run --mount "type=bind,src=$(pwd)/pwfile,dst=/pwfile" --mount "type=bind,src=$(pwd)/data,dst=/data" --cap-drop ALL --security-opt no-new-privileges -p 8080:8080 mylinks -basic-auth-file /pwfile -basic-auth-realm my-realm
    ```
 Note: This is only secure if you also use https.   
 
-The application will store data in the directory mounted at `/data`, using `data/linksaver.sqlite` as the database file 
+The application will store data in the directory mounted at `/data`, using `data/mylinks.sqlite` as the database file 
 and store screenshots in `data/screenshots`. 
 
 
@@ -46,20 +46,20 @@ and store screenshots in `data/screenshots`.
 
 1. Build the standalone executable
    ```bash
-   go build -tags netgo -v ./cmd/linksaver/
+   go build -tags netgo -v ./cmd/mylinks/
    ```
 2. Run it without authentication, listing on localhost only:
    ```bash
-   ./linksaver -port 8080 -addr 127.0.0.1 -data data
+   ./mylinks -port 8080 -addr 127.0.0.1 -data data
    ```  
 3. Run it with HTTP basic authentication, listing externally:
    ```bash
    htpasswd -cBC 12 pwfile my_username
-   ./linksaver -port 8080 -data data -basic-auth-file pwfile -basic-auth-realm my-realm
+   ./mylinks -port 8080 -data data -basic-auth-file pwfile -basic-auth-realm my-realm
    ```  
 Note: This is only secure if you also use https.   
 
-The application will store data in the `./data` directory, using `./data/linksaver.sqlite` as the database file.
+The application will store data in the `./data` directory, using `./data/mylinks.sqlite` as the database file.
 
 You can use the `apparmor-profile` file as a template for an Apparmor profile, you need to substitute 
 `${PATH_TO_EXECUTABLE}` and `${PATH_TO_DATA}` with absolute paths. 
@@ -81,7 +81,7 @@ From the web interface, you can:
 ### Project Structure
 
 ```
-├── cmd/linksaver/          # Main application
+├── cmd/mylinks/          # Main application
 │   ├── main.go             # Application entry point
 │   ├── handlers.go         # HTTP request handlers
 │   ├── handlers_test.go    # Handler tests

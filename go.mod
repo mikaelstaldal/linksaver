@@ -1,4 +1,4 @@
-module github.com/mikaelstaldal/linksaver
+module github.com/mikaelstaldal/mylinks
 
 go 1.26.1
 

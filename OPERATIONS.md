@@ -1,6 +1,6 @@
-# Link Saver — Operations Guide
+# MyLinks — Operations Guide
 
-This guide covers production installation of Link Saver on a Linux server, including TLS termination via a reverse proxy (e.g. nginx) and systemd service management.
+This guide covers production installation of MyLinks on a Linux server, including TLS termination via a reverse proxy (e.g. nginx) and systemd service management.
 
 ## Table of Contents
 
@@ -32,9 +32,9 @@ This guide covers production installation of Link Saver on a Linux server, inclu
 ### Build from source
 
 ```bash
-git clone https://github.com/mikaelstaldal/linksaver.git
-cd linksaver
-go build -tags netgo -v ./cmd/linksaver/
+git clone https://github.com/mikaelstaldal/mylinks.git
+cd mylinks
+go build -tags netgo -v ./cmd/mylinks/
 ```
 
 > **Note:** A standalone build (without Docker) does not have screenshot support — that requires the headless Chrome browser bundled in the Docker image. See [Screenshots](#screenshots) below.
@@ -47,10 +47,10 @@ If you want screenshot support, run the provided Docker image instead of a stand
 
 ## Create a System User
 
-Run linksaver as a dedicated non-root user.
+Run mylinks as a dedicated non-root user.
 
 ```bash
-useradd --system --home-dir /var/lib/linksaver --shell /usr/sbin/nologin linksaver
+useradd --system --home-dir /var/lib/mylinks --shell /usr/sbin/nologin mylinks
 ```
 
 ---
@@ -58,57 +58,57 @@ useradd --system --home-dir /var/lib/linksaver --shell /usr/sbin/nologin linksav
 ## Set Up the Data Directory
 
 ```bash
-mkdir -p /var/lib/linksaver/data
-chown -R linksaver:linksaver /var/lib/linksaver
-chmod 0700 /var/lib/linksaver /var/lib/linksaver/data
+mkdir -p /var/lib/mylinks/data
+chown -R mylinks:mylinks /var/lib/mylinks
+chmod 0700 /var/lib/mylinks /var/lib/mylinks/data
 ```
 
-linksaver creates `linksaver.sqlite` (and a `screenshots/` subdirectory, if screenshot support is enabled) in the data directory on first startup.
+mylinks creates `mylinks.sqlite` (and a `screenshots/` subdirectory, if screenshot support is enabled) in the data directory on first startup.
 
 ---
 
 ## Set Up Authentication
 
-linksaver uses HTTP Basic Auth backed by an htpasswd file (bcrypt). Create the file as the `linksaver` user:
+mylinks uses HTTP Basic Auth backed by an htpasswd file (bcrypt). Create the file as the `mylinks` user:
 
 ```bash
-htpasswd -Bc /etc/linksaver/htpasswd myuser
+htpasswd -Bc /etc/mylinks/htpasswd myuser
 ```
 
 Protect the file:
 
 ```bash
-chown linksaver:linksaver /etc/linksaver/htpasswd
-chmod 0600 /etc/linksaver/htpasswd
+chown mylinks:mylinks /etc/mylinks/htpasswd
+chmod 0600 /etc/mylinks/htpasswd
 ```
 
-> **Important:** HTTP Basic Auth must only be used over HTTPS. Never expose linksaver on a non-loopback interface without TLS. The reverse proxy (see below) provides TLS termination.
+> **Important:** HTTP Basic Auth must only be used over HTTPS. Never expose mylinks on a non-loopback interface without TLS. The reverse proxy (see below) provides TLS termination.
 
 ---
 
 ## Configure systemd
 
-Create `/etc/systemd/system/linksaver.service`:
+Create `/etc/systemd/system/mylinks.service`:
 
 ```ini
 [Unit]
-Description=Link Saver
+Description=MyLinks
 After=network.target
 
 [Service]
 Type=exec
-User=linksaver
-Group=linksaver
+User=mylinks
+Group=mylinks
 
-LoadCredential=basic-auth:/etc/linksaver/htpasswd
+LoadCredential=basic-auth:/etc/mylinks/htpasswd
 
-ExecStart=/usr/local/bin/linksaver \
-    -data /var/lib/linksaver/data \
+ExecStart=/usr/local/bin/mylinks \
+    -data /var/lib/mylinks/data \
     -addr 127.0.0.1 \
     -port 8080 \
     -public-url https://links.example.com \
     -basic-auth-file ${CREDENTIALS_DIRECTORY}/basic-auth \
-    -basic-auth-realm linksaver
+    -basic-auth-realm mylinks
 
 Restart=on-failure
 RestartSec=5
@@ -117,7 +117,7 @@ RestartSec=5
 NoNewPrivileges=true
 ProtectSystem=strict
 PrivateTmp=true
-ReadWritePaths=/var/lib/linksaver
+ReadWritePaths=/var/lib/mylinks
 
 [Install]
 WantedBy=multi-user.target
@@ -127,32 +127,32 @@ Enable and start:
 
 ```bash
 systemctl daemon-reload
-systemctl enable linksaver
-systemctl start linksaver
-systemctl status linksaver
+systemctl enable mylinks
+systemctl start mylinks
+systemctl status mylinks
 ```
 
 View logs:
 
 ```bash
-journalctl -u linksaver -f
+journalctl -u mylinks -f
 ```
 
 ---
 
 ## Configure a Reverse Proxy
 
-linksaver does not terminate TLS itself. Place it behind a reverse proxy.
+mylinks does not terminate TLS itself. Place it behind a reverse proxy.
 
-Start linksaver with `-public-url https://links.example.com`. The CSRF middleware rejects state-changing requests (POST/PATCH/DELETE) whose `Origin` or `Referer` does not match the configured public URL, so this must match the externally visible URL exactly (scheme and host).
+Start mylinks with `-public-url https://links.example.com`. The CSRF middleware rejects state-changing requests (POST/PATCH/DELETE) whose `Origin` or `Referer` does not match the configured public URL, so this must match the externally visible URL exactly (scheme and host).
 
 One requirement regardless of which reverse proxy you use:
 
-- **Rate limiting** — linksaver has no built-in rate limiting. The reverse proxy must enforce a per-IP request rate limit, especially since adding a link triggers an outbound fetch (and optionally a headless-browser render) of the target URL.
+- **Rate limiting** — mylinks has no built-in rate limiting. The reverse proxy must enforce a per-IP request rate limit, especially since adding a link triggers an outbound fetch (and optionally a headless-browser render) of the target URL.
 
 ### nginx
 
-Create `/etc/nginx/sites-available/linksaver`:
+Create `/etc/nginx/sites-available/mylinks`:
 
 ```nginx
 server {
@@ -173,8 +173,8 @@ server {
     ssl_prefer_server_ciphers off;
 
     # Rate limiting (adjust as needed)
-    limit_req_zone $binary_remote_addr zone=linksaver:10m rate=10r/s;
-    limit_req zone=linksaver burst=20 nodelay;
+    limit_req_zone $binary_remote_addr zone=mylinks:10m rate=10r/s;
+    limit_req zone=mylinks burst=20 nodelay;
 
     location / {
         proxy_pass http://127.0.0.1:8080;
@@ -190,7 +190,7 @@ server {
 Enable and test:
 
 ```bash
-ln -s /etc/nginx/sites-available/linksaver /etc/nginx/sites-enabled/linksaver
+ln -s /etc/nginx/sites-available/mylinks /etc/nginx/sites-enabled/mylinks
 nginx -t
 systemctl reload nginx
 ```
@@ -266,11 +266,11 @@ From the web interface, you can add links and notes, search your saved items, an
 
 ## Screenshots
 
-Screenshot extraction requires a headless Chrome browser, which is only available in the Docker image (it bundles `chromedp/headless-shell` and sets the `CHROMEDP` environment variable for linksaver to connect to).
+Screenshot extraction requires a headless Chrome browser, which is only available in the Docker image (it bundles `chromedp/headless-shell` and sets the `CHROMEDP` environment variable for mylinks to connect to).
 
 A standalone binary run outside Docker (as in the systemd setup above) will save links with title and description but **without** screenshots — the `CHROMEDP` environment variable is unset, so the screenshot/headless-browser code path is skipped entirely.
 
-If you need screenshots in a systemd-managed deployment, run the Docker image instead (e.g. via a `docker run` `ExecStart`), or run `headless-shell` as a separate service and set `CHROMEDP=wss://127.0.0.1:9222` (or similar) in the linksaver unit's `Environment=`.
+If you need screenshots in a systemd-managed deployment, run the Docker image instead (e.g. via a `docker run` `ExecStart`), or run `headless-shell` as a separate service and set `CHROMEDP=wss://127.0.0.1:9222` (or similar) in the mylinks unit's `Environment=`.
 
 ---
 
@@ -279,30 +279,30 @@ If you need screenshots in a systemd-managed deployment, run the Docker image in
 1. Build or download the new binary.
 2. Stop the service:
    ```bash
-   systemctl stop linksaver
+   systemctl stop mylinks
    ```
 3. Replace the binary:
    ```bash
-   install -o root -g root -m 0755 linksaver-new /usr/local/bin/linksaver
+   install -o root -g root -m 0755 mylinks-new /usr/local/bin/mylinks
    ```
 4. Start the service:
    ```bash
-   systemctl start linksaver
+   systemctl start mylinks
    ```
 5. Check the logs for any startup errors:
    ```bash
-   journalctl -u linksaver -n 50
+   journalctl -u mylinks -n 50
    ```
 
 ---
 
 ## Firewall
 
-linksaver binds to `127.0.0.1` by default and is never directly exposed to the internet. Ensure your firewall allows:
+mylinks binds to `127.0.0.1` by default and is never directly exposed to the internet. Ensure your firewall allows:
 
 | Port | Protocol | Purpose                                  |
 |------|----------|------------------------------------------|
 | 80   | TCP      | HTTP → redirect to HTTPS (reverse-proxy) |
-| 443  | TCP      | HTTPS (reverse-proxy → linksaver)        |
+| 443  | TCP      | HTTPS (reverse-proxy → mylinks)        |
 
-The linksaver process itself (port 8080) must not be reachable from outside the server.
+The mylinks process itself (port 8080) must not be reachable from outside the server.

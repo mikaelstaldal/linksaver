@@ -13,7 +13,7 @@ COPY empty-efs.go ui/efs.go
 COPY empty/ ui/
 
 # Build the application
-RUN go build -v -o /app/linksaver ./cmd/linksaver
+RUN go build -v -o /app/mylinks ./cmd/mylinks
 
 FROM chromedp/headless-shell:latest@sha256:24b6acd183756b9cdc9b2c951141cefbc645a9b6a18341975babf0911a30c7e5
 
@@ -21,11 +21,11 @@ ENV CHROMEDP="wss://localhost:9222"
 
 WORKDIR /
 
-COPY --from=builder /app/linksaver /linksaver/linkserver
-COPY run.sh /linksaver/run.sh
-COPY ui/ /linksaver/ui
+COPY --from=builder /app/mylinks /mylinks/mylinks
+COPY run.sh /mylinks/run.sh
+COPY ui/ /mylinks/ui
 
 # Expose the default port
 EXPOSE 8080
 
-ENTRYPOINT [ "/linksaver/run.sh" ]
+ENTRYPOINT [ "/mylinks/run.sh" ]

@@ -24,6 +24,6 @@
         var bookmarkletURL = new URL("./bookmarklet", location.href).href;
         bookmarkletLink.href = "javascript:void(window.open('" +
             bookmarkletURL +
-            "?url='+encodeURIComponent(location.href),'linksaver','width=450,height=300'))";
+            "?url='+encodeURIComponent(location.href),'mylinks','width=450,height=300'))";
     }
 })();
